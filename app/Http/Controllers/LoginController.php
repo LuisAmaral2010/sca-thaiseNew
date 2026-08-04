@@ -8,14 +8,15 @@ use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class LoginController extends Controller
 {
     // Login
     public function index()
     {
-        // Carregar a VIEW
-        return view('auth.login');
+        // Carregar a página de login
+        return Inertia::render('Auth/Login');
     }
 
     // Validar os dados do usuário no login
