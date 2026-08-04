@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Building2, FlaskConical, UserCog, UserCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -38,7 +38,7 @@ export default function SelecionarPerfil() {
 
             <div className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {perfis.map(({ titulo, href, icon: Icon, descricao }) => (
-                    <Link key={href} href={href} className="block">
+                    <a key={href} href={href} className="block">
                         <Card className="h-full transition-shadow hover:shadow-md">
                             <CardHeader>
                                 <Icon className="size-8 text-primary" />
@@ -48,7 +48,7 @@ export default function SelecionarPerfil() {
                                 <CardDescription>{descricao}</CardDescription>
                             </CardContent>
                         </Card>
-                    </Link>
+                    </a>
                 ))}
             </div>
         </div>
