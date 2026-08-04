@@ -1,19 +1,19 @@
 @if (session('success'))
-    <p style="color: #082">
+    <div class="sca-alert sca-alert--success">
         {{ session('success') }}
-    </p>
+    </div>
 @endif
 
 @if (session('error'))
-    <p style="color: #f00">
+    <div class="sca-alert sca-alert--error">
         {{ session('error') }}
-    </p>
+    </div>
 @endif
 
 @if ($errors->any())
-    <p style="color: #f00">
+    <div class="sca-alert sca-alert--error">
         @foreach ($errors->all() as $error)
             {{ $error }}<br>
         @endforeach
-    </p>
+    </div>
 @endif

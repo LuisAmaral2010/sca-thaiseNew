@@ -1,57 +1,67 @@
 @extends('layouts.app')
 
- 
-@section('title', 'Page Title')
+@section('title', 'Solicitações de Serviço')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Listar Solicitações de Servicos</span></h3>
-            </div>
-                            <a href="{{ route('solicitacoes_servicos.create') }}">Cadastrar</a><br><br>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Solicitações de Serviço</h1>
+            <p class="sca-page-header__subtitle">Acompanhe e gerencie as solicitações cadastradas.</p>
         </div>
-    </section>  
-    <ul class="list-group">
-   @forelse ($solicitacoes_servicos as $solicitacao_servico)
-        Descrição: {{ $solicitacao_servico->descricao }}<br>
-        Solicitacao Id: {{ $solicitacao_servico->solicitacao_servico_id }}<br> 
-        <!-- Validade: {{-- $solicitacao_servico->data_solicitacao --}}<br> -->
-        Validade: {{ \Carbon\Carbon::parse($solicitacao_servico->data_solicitacao)->format('d/m/Y') }}<br>
-        Atividade: {{ $solicitacao_servico->atividade_id }}<br>
-        {{-- Substitui atividade_id pelo título da atividade --}}
-        Atividade:{{ $solicitacao_servico->atividade->titulo ?? '—' }}<br>
-        Solicitante: {{ $solicitacao_servico->solicitante_matricula }}<br>
-        Solicitante: {{ $solicitacao_servico->empregado->nome }}<br> 
-        @can('index-solicitacao_servico')
-            <a href="{{ route('solicitacao_servico.index', ['solicitacao_servico' => $solicitacao_servico->id]) }}">Turmas</a><br>
-        @endcan
+        <a href="{{ route('solicitacoes_servicos.create') }}" class="sca-btn sca-btn--primary">Cadastrar</a>
+    </div>
 
-        @can('show-solicitacao_servico')
-            <a href="{{ route('solicitacao_servicos.show', ['solicitacao_servico' => $solicitacao_servico->id]) }}">Visualizar</a><br>
-        @endcan
+    <x-alert />
 
-        @can('edit-solicitacao_servico')
-            <a href="{{ route('solicitacao_servicos.edit', ['solicitacao_servico' => $solicitacao_servico->id]) }}">Editar</a><br>
-        @endcan
+    <div class="sca-card-list">
+        @forelse ($solicitacoes_servicos as $solicitacao_servico)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $solicitacao_servico->solicitacao_servico_id }}</span>
+                    <span class="sca-card__date">{{ \Carbon\Carbon::parse($solicitacao_servico->data_solicitacao)->format('d/m/Y') }}</span>
+                </div>
 
-        @can('destroy-solicitacao_servico')
-            <form action="{{ route('solicitacao_servicos.destroy', ['solicitacao_servico' => $solicitacao_servico->id]) }}" method="POST">
-                @csrf
-                @method('delete')
+                <h3 class="sca-card__title">{{ $solicitacao_servico->descricao }}</h3>
 
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Atividade</dt>
+                        <dd>{{ $solicitacao_servico->atividade->titulo ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Solicitante</dt>
+                        <dd>{{ $solicitacao_servico->empregado->nome }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span></dd>
+                    </div>
+                </dl>
 
-            </form>
-        @endcan
+                <div class="sca-card__actions">
+                    @can('index-solicitacao_servico')
+                        <a href="{{ route('solicitacao_servico.index', ['solicitacao_servico' => $solicitacao_servico->id]) }}" class="sca-link">Turmas</a>
+                    @endcan
 
-        <hr>
-    @empty
-        Nenhum registro encontrado!
-    @endforelse
- 
-        </ul>
-    {{ $solicitacoes_servicos->links() }}
+                    @can('show-solicitacao_servico')
+                        <a href="{{ route('solicitacoes_servicos.show', ['solicitacao_servico' => $solicitacao_servico->id]) }}" class="sca-link">Visualizar</a>
+                    @endcan
+
+                    @can('edit-solicitacao_servico')
+                        <a href="{{ route('solicitacoes_servicos.edit', ['solicitacao_servico' => $solicitacao_servico->id]) }}" class="sca-link">Editar</a>
+                    @endcan
+
+                    @can('destroy-solicitacao_servico')
+                        <form action="{{ route('solicitacao_servico.destroy', ['solicitacao_servico' => $solicitacao_servico->id]) }}" method="POST" class="sca-card__delete-form">
+                            @csrf
+                            @method('delete')
+                            <button type="submit" class="sca-link sca-link--danger" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
+                        </form>
+                    @endcan
+                </div>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $solicitacoes_servicos->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
