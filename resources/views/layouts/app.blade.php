@@ -1,8 +1,8 @@
 <!-- resources/views/layouts/app.blade.php -->
 <html>
     <head>
-        @vite(['resources/sass/app.scss','resources/js/app.js'])
-        
+        @vite(['resources/sass/app.scss','resources/css/legacy-shell.css','resources/js/app.js'])
+
         <!-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -22,55 +22,41 @@
     </head>
     <body>
         <!-- ======= Header ======= -->
-        <header id="header" class="d-flex align-items-center">
-            <div class="container d-flex align-items-center justify-content-between">
+        <header class="sca-navbar">
+            <div class="sca-navbar__inner">
+                <a href="{{ route('dashboard.index') }}" class="sca-navbar__brand">
+                    <img src="/img/logo_sca.jpg" alt="" class="sca-navbar__logo">
+                    <span>SCA</span>
+                </a>
 
-            <h1 class="logo"><a href="index.html" class="logo"><img src="/img/logo_sca.jpg" alt=""></a></h1>
-            <!-- Uncomment below if you prefer to use an image logo -->
-            <!-- <a href="index.html" class="logo"><img src="assets/img/logo.png" alt=""></a>-->
+                <button class="sca-navbar__toggle" type="button" data-bs-toggle="collapse" data-bs-target="#scaNavCollapse" aria-controls="scaNavCollapse" aria-expanded="false" aria-label="Abrir menu">
+                    <i class="bi bi-list"></i>
+                </button>
 
-            <nav id="navbar" class="navbar">
-                <ul>
-                <li><a class="nav-link scrollto active" href="/">Home</a></li>
-                <li><a class="nav-link scrollto" href="/cra">CRA</a></li>
-                <li><a class="nav-link scrollto" href="/laboratorio">Laboratório</a></li>
-                <li><a class="nav-link scrollto" href="/resptec">Resp Tec</a></li>
-                <li><a class="nav-link scrollto" href="/solicitacao">Solicitante</a></li>
-                <!-- <li class="dropdown"><a href="/solicitacao"><span>Solicitante</span> <i class="bi bi-chevron-down"></i></a>
-                    <ul>
-                    <li><a href="/solicitacao/criar">Criar solicitação</a></li>
-                    <li><a href="/solicitacao/salvar">Consultar solicitação</a></li>
-                    </ul>
-                </li> -->
-                <li class="dropdown"><i class="bi bi-person-fill"></i> <i class="bi bi-chevron-down"></i></a>
-                    <ul>
-                        <div>
-                            <strong><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">{{auth()->user()->name}}</a></strong>
-                            <a href="/logout">Logout</a></li>
-                        </div>
+                <div class="collapse sca-navbar__collapse" id="scaNavCollapse">
+                    <nav class="sca-navbar__nav">
+                        <a class="sca-navbar__link {{ request()->is('dashboard*') ? 'is-active' : '' }}" href="{{ route('dashboard.index') }}">Dashboard</a>
+                        <a class="sca-navbar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">CRA</a>
+                        <a class="sca-navbar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">Laboratório</a>
+                        <a class="sca-navbar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec">Resp Tec</a>
+                        <a class="sca-navbar__link {{ request()->is('solicitacao*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacao">Solicitante</a>
+                    </nav>
 
-                        
-                    </ul>
-         <!--
-                <li class="nav-item dropdown"> -->
-                <!-- <ul class="dropdown-menu">
-                  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">{{--auth()->user()->name--}}</a>
-           
-                    <li class="nav-item">
-                      <form action="/logout" method="POST">
-                        @csrf
-                        <a href="/welcome"
-                          class="nav-link"
-                          onclick="event.preventDefault();
-                          this.closest('form').submit();">
-                          Sair
-                        </a>
-                      </form>
-                    </li>
-                </ul> -->
-                <i class="bi bi-list mobile-nav-toggle"></i>
-            </nav><!-- .navbar -->
-
+                    <div class="sca-navbar__user dropdown">
+                        <button class="sca-navbar__user-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="sca-avatar"><i class="bi bi-person-fill"></i></span>
+                            <span class="sca-navbar__user-name">{{ auth()->user()->name }}</span>
+                            <i class="bi bi-chevron-down sca-navbar__chevron"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end sca-dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="/logout">
+                                    <i class="bi bi-box-arrow-right"></i> Sair
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </header><!-- End Header -->
 
@@ -82,15 +68,11 @@
         </main>
 
         <!-- ======= Footer ======= -->
-        <footer id="footer">
-            <div class="container py-4">
-                <div class="copyright">
-                    &copy; Copyright <strong><span></span></strong>. All Rights Reserved
-                </div>
-                <div class="credits">
-                    Designed by Embrapa Agroindústria de Alimentos
-                </div>
-              
+        <footer class="sca-footer">
+            <div class="sca-footer__inner">
+                <span>&copy; {{ date('Y') }} SCA. Todos os direitos reservados.</span>
+                <span>Desenvolvido pela Embrapa Agroindústria de Alimentos</span>
+            </div>
         </footer><!-- End Footer -->
 
         <div id="preloader"></div>

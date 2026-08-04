@@ -1,0 +1,260 @@
+/* Shared chrome (header/nav/footer) for the legacy Bootstrap Blade layouts
+   (resources/views/layouts/app.blade.php and site.blade.php), restyled to
+   match the shadcn/ui neutral theme used on the Inertia side of the app.
+   Page content in these layouts still relies on Bootstrap's grid/utilities,
+   so this file intentionally avoids Tailwind and any global element resets. */
+
+:root {
+    --sca-background: oklch(1 0 0);
+    --sca-foreground: oklch(0.145 0 0);
+    --sca-border: oklch(0.922 0 0);
+    --sca-muted-foreground: oklch(0.556 0 0);
+    --sca-accent: oklch(0.97 0 0);
+    --sca-accent-foreground: oklch(0.205 0 0);
+    --sca-primary: oklch(0.205 0 0);
+    --sca-primary-foreground: oklch(0.985 0 0);
+    --sca-radius: 0.625rem;
+    --sca-font-sans: 'Geist', 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+.sca-navbar {
+    background: var(--sca-background);
+    border-bottom: 1px solid var(--sca-border);
+    font-family: var(--sca-font-sans);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.sca-navbar__inner {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.sca-navbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--sca-foreground);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.sca-navbar__logo {
+    height: 2rem;
+    width: 2rem;
+    border-radius: calc(var(--sca-radius) * 0.6);
+    object-fit: cover;
+}
+
+.sca-navbar__spacer {
+    flex: 1;
+}
+
+.sca-navbar__toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--sca-border);
+    background: var(--sca-background);
+    border-radius: calc(var(--sca-radius) * 0.6);
+    padding: 0.375rem 0.625rem;
+    color: var(--sca-foreground);
+    font-size: 1.125rem;
+    line-height: 1;
+    margin-left: auto;
+}
+
+.sca-navbar__collapse {
+    display: none;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.sca-navbar__collapse.show {
+    display: flex;
+}
+
+@media (min-width: 901px) {
+    .sca-navbar__collapse {
+        display: flex !important;
+    }
+}
+
+.sca-navbar__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sca-navbar__link {
+    padding: 0.5rem 0.75rem;
+    border-radius: calc(var(--sca-radius) * 0.6);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sca-muted-foreground);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sca-navbar__link:hover {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+}
+
+.sca-navbar__link.is-active {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+}
+
+.sca-navbar__user {
+    flex-shrink: 0;
+}
+
+.sca-navbar__user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: calc(var(--sca-radius) * 0.6);
+    border: 1px solid var(--sca-border);
+    background: var(--sca-background);
+    color: var(--sca-foreground);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.sca-navbar__user-trigger:hover {
+    background: var(--sca-accent);
+}
+
+.sca-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    width: 1.5rem;
+    border-radius: 999px;
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.sca-navbar__user-name {
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sca-navbar__chevron {
+    font-size: 0.7rem;
+    color: var(--sca-muted-foreground);
+}
+
+.sca-dropdown-menu {
+    border: 1px solid var(--sca-border);
+    border-radius: var(--sca-radius);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 0.25rem;
+    font-family: var(--sca-font-sans);
+}
+
+.sca-dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: calc(var(--sca-radius) * 0.5);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.625rem;
+    color: var(--sca-foreground);
+}
+
+.sca-dropdown-menu .dropdown-item:hover,
+.sca-dropdown-menu .dropdown-item:focus {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+}
+
+.sca-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: calc(var(--sca-radius) * 0.6);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+}
+
+.sca-btn--primary {
+    background: var(--sca-primary);
+    color: var(--sca-primary-foreground);
+}
+
+.sca-btn--primary:hover {
+    opacity: 0.9;
+    color: var(--sca-primary-foreground);
+}
+
+@media (max-width: 900px) {
+    .sca-navbar__toggle {
+        display: inline-flex;
+    }
+
+    .sca-navbar__collapse {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background: var(--sca-background);
+        border-bottom: 1px solid var(--sca-border);
+        padding: 0.5rem 1rem 1rem;
+    }
+
+    .sca-navbar__nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.125rem;
+    }
+
+    .sca-navbar__user {
+        margin-top: 0.75rem;
+    }
+}
+
+.sca-footer {
+    border-top: 1px solid var(--sca-border);
+    background: var(--sca-background);
+    color: var(--sca-muted-foreground);
+    font-family: var(--sca-font-sans);
+    font-size: 0.8125rem;
+}
+
+.sca-footer__inner {
+    max-width: 1200px;
+    margin-inline: auto;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}

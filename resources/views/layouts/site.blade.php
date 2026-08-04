@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-br">
     <head>
-        @vite(['resources/sass/app.scss','resources/js/app.js'])
-        
+        @vite(['resources/sass/app.scss','resources/css/legacy-shell.css','resources/js/app.js'])
+
         <!-- <link rel="stylesheet" href="{{ asset('css/app.css') }}"> -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -22,34 +22,30 @@
     </head>
     <body>
         <!-- ======= Header ======= -->
-        <header id="header" class="d-flex align-items-center">
-            <div class="container d-flex align-items-center justify-content-between">
-            
-            <h1 class="logo"><a href="index.html" class="logo"><img src="/img/logo_sca.jpg" alt=""></a></h1>
-            
-
+        <header class="sca-navbar">
+            <div class="sca-navbar__inner">
+                <a href="/" class="sca-navbar__brand">
+                    <img src="/img/logo_sca.jpg" alt="" class="sca-navbar__logo">
+                    <span>SCA</span>
+                </a>
+                <div class="sca-navbar__spacer"></div>
+                <a href="{{ route('login') }}" class="sca-btn sca-btn--primary">Entrar</a>
+            </div>
         </header><!-- End Header -->
 
         <main>
-<div class="container"> 
-            <a href="{{ route('login') }}">Login</a><br>
-</div>
-        <div class="container"> 
-            @yield('content')     
+        <div class="container">
+            @yield('content')
         </div>
 
         </main>
 
         <!-- ======= Footer ======= -->
-        <footer id="footer">
-            <div class="container py-4">
-                <div class="copyright">
-                    &copy; Copyright <strong><span></span></strong>. All Rights Reserved
-                </div>
-                <div class="credits">
-                    Designed by Embrapa Agroindústria de Alimentos
-                </div>
-                </div>
+        <footer class="sca-footer">
+            <div class="sca-footer__inner">
+                <span>&copy; {{ date('Y') }} SCA. Todos os direitos reservados.</span>
+                <span>Desenvolvido pela Embrapa Agroindústria de Alimentos</span>
+            </div>
         </footer><!-- End Footer -->
 
 <div id="preloader"></div>

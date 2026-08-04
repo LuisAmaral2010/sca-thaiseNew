@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/sass/app.scss',
                 'resources/js/app.js',
                 'resources/css/app.css',
+                'resources/css/legacy-shell.css',
                 'resources/js/app.jsx',
             ],
             refresh: true,
