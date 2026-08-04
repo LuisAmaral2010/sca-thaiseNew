@@ -1,48 +1,43 @@
 @extends('layouts.app')
 
-@section('title', 'Página Inicial')
+@section('title', 'Perfis Acessos')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Perfis Acessos</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Perfis Acessos</h1>
         </div>
-    </section> 
-        <ul class="list-group">
-            @forelse ($perfis_acessos as $perfil_acesso)
-                Id: {{ $perfil_acesso->perfil_acesso_id }}<br>
-                Data Permissão: {{ $perfil_acesso->data_permissao }}<br>
-                Tipo Perfil: {{ $perfil_acesso->tipo_perfil }}<br>
-                Usuario: {{ $perfil_acesso->usuario_matricula }}<br>
+    </div>
 
+    <x-alert />
 
-                
-                <a href="{{ route('perfis_acessos.show', ['perfil_acesso' => $perfil_acesso->perfil_acesso_id]) }}">Visualizar</a>
-            
-                <a href="{{ route('perfis_acessos.edit', ['perfil_acesso' => $perfil_acesso->perfil_acesso_id]) }}">Editar</a>
+    <div class="sca-card-list">
+        @forelse ($perfis_acessos as $perfil_acesso)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $perfil_acesso->perfil_acesso_id }}</span>
+                    <span class="sca-card__date">{{ $perfil_acesso->data_permissao }}</span>
+                </div>
 
-                <form action="{{ route('perfis_acessos.destroy', ['perfil_acesso' => $perfil_acesso->perfil_acesso_id]) }}" method="POST">
-                    @csrf
-                    @method('delete')
+                <h3 class="sca-card__title">{{ $perfil_acesso->tipo_perfil }}</h3>
 
-                    <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-                </form>            
-            @empty
-                Nenhum registro encontrado!
-            @endforelse
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Usuário</dt>
+                        <dd>{{ $perfil_acesso->usuario_matricula }}</dd>
+                    </div>
+                </dl>
 
-            {{ $perfis_acessos->links() }}
+                <div class="sca-card__actions">
+                    <a href="{{ route('perfis_acessos.show', ['perfil_acesso' => $perfil_acesso->perfil_acesso_id]) }}" class="sca-link">Visualizar</a>
+                </div>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
 
-        </ul>
+    <div class="sca-pagination">
+        {{ $perfis_acessos->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
-<!--
-x perfil_acesso_id 
-x data_permissao
-x tipo_perfil
-x usuario_matricula
--->
-

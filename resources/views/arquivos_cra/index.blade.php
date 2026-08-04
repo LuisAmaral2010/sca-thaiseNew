@@ -1,45 +1,55 @@
 @extends('layouts.app')
 
-@section('title', 'Page Title')
+@section('title', 'Arquivos CRA')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Arquivos CRA</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Arquivos CRA</h1>
         </div>
-    </section>  
-    <ul class="list-group">
-   @forelse ($arquivos_cra as $arquivo_cra)
-        Id: {{ $arquivos_cra->arquivo_cra_id }}<br>
-        Tipo de Conteúdo: {{ $arquivos_cra->content_type }}<br>
-        Conteúdo do Documento: {{ $arquivos_cra->document_content }}<br>
-        Nome: {{ $arquivos_cra->nome }}<br>
-        Tamanho: {{ $arquivos_cra->tamanho }}<br>
-        Aprovado RespTec: {{ $arquivos_cra->aprovado_resp_tec }}<br>
-        Data Apreciação: {{ $arquivos_cra->data_apreciacao }}<br>
-        Observacao: {{ $arquivos_cra->observacao }}<br>
-        Laudo: {{ $arquivos_cra->laudo_id }}<br>
+    </div>
 
+    <x-alert />
 
-            <a href="{{ route('arquivos_cra.show', ['arquivo_cra' => $arquivo_cra->amostra_id]) }}">Visualizar</a><br>
+    <div class="sca-card-list">
+        @forelse ($arquivos_cra as $arquivo_cra)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $arquivo_cra->arquivo_cra_id }}</span>
+                    <span class="sca-card__date">{{ $arquivo_cra->data_apreciacao }}</span>
+                </div>
 
-            <a href="{{ route('arquivos_cra.edit', ['arquivo_cra' => $arquivo_cra->amostra_id]) }}">Editar</a><br>
+                <h3 class="sca-card__title">{{ $arquivo_cra->nome }}</h3>
 
-            <form action="{{ route('arquivos_cra.destroy', ['arquivo_cra' => $arquivo_cra->amostra_id]) }}" method="POST">
-                @csrf
-                @method('delete')
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Tipo de Conteúdo</dt>
+                        <dd>{{ $arquivo_cra->content_type }}</dd>
+                    </div>
+                    <div>
+                        <dt>Tamanho</dt>
+                        <dd>{{ $arquivo_cra->tamanho }}</dd>
+                    </div>
+                    <div>
+                        <dt>Aprovado Resp. Téc.</dt>
+                        <dd>{{ $arquivo_cra->aprovado_resp_tec }}</dd>
+                    </div>
+                    <div>
+                        <dt>Laudo</dt>
+                        <dd>{{ $arquivo_cra->laudo_id }}</dd>
+                    </div>
+                </dl>
 
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-            </form>
-            <hr>
-    @empty
-        Nenhum registro encontrado!
-    @endforelse
+                @if ($arquivo_cra->observacao)
+                    <p class="sca-card__description">{{ $arquivo_cra->observacao }}</p>
+                @endif
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
 
-    {{ $arquivos_cra->links() }}
-      
-        </ul>
+    <div class="sca-pagination">
+        {{ $arquivos_cra->links('pagination::bootstrap-5') }}
+    </div>
 @endsection

@@ -1,54 +1,47 @@
 @extends('layouts.app')
 
- 
-@section('title', 'Page Title')
+@section('title', 'Serviços')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Listar Serviços</span></h3>
-
-                <a href="{{ route('servicos.create') }}">Cadastrar</a><br><br>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Serviços</h1>
         </div>
-    </section>  
-    <ul class="list-group">
+    </div>
+
+    <x-alert />
+
+    <div class="sca-card-list">
         @forelse ($servicos as $servico)
-            Id: {{ $servico->laudo_id }}<br>
-            Ativo: {{ $servico->is_ativo }}<br>
-            Data Cadastro: {{ $servico->data_cadastro }}<br>
-            Descricao: {{ $servico->descricao }}<br>
-            Unidade Operacional: {{ $servico->unidade_operacional_id }}<br>
-            Tipo Serviço: {{ $servico->tipo_servico }}<br>
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $servico->servico_id }}</span>
+                    <span class="sca-card__date">{{ $servico->data_cadastro }}</span>
+                </div>
 
-            <a href="{{ route('servicos.show', ['servico' => $servico->servico_id]) }}">Visualizar</a>
-            
-            <a href="{{ route('servicos.edit', ['servico' => $servico->servico_id]) }}">Editar</a>
+                <h3 class="sca-card__title">{{ $servico->tipo_servico }}</h3>
 
-            <form action="{{ route('servicos.destroy', ['servico' => $servico->servico_id]) }}" method="POST">
-                @csrf
-                @method('delete')
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Ativo</dt>
+                        <dd>{{ $servico->is_ativo ? 'Sim' : 'Não' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Unidade Operacional</dt>
+                        <dd>{{ $servico->unidade_operacional_id }}</dd>
+                    </div>
+                </dl>
 
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-            </form>
-            <hr>
+                @if ($servico->descricao)
+                    <p class="sca-card__description">{{ $servico->descricao }}</p>
+                @endif
+            </div>
         @empty
-            Nenhum registro encontrado!
-    @endforelse
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
 
-    {{ $servicos->links() }}
-      
-        </ul>
+    <div class="sca-pagination">
+        {{ $servicos->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
-<!--
-x servico_id 
-x is_ativo
-x data_cadastro
-x descricao
-x unidade_operacional_id
-tipo_servico
--->
-

@@ -1,48 +1,62 @@
 @extends('layouts.app')
 
- 
-@section('title', 'Page Title')
+@section('title', 'Atividades')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Atividades</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Atividades</h1>
         </div>
-    </section>  
-    <ul class="list-group">
+    </div>
+
+    <x-alert />
+
+    <div class="sca-card-list">
         @forelse ($atividades as $atividade)
-            Id: {{ $atividade->atividade_id }}<br>
-            Plano de Acao: {{ $atividade->plano_acao_id }}<br>
-            Codigo: {{ $atividade->codigo }}<br>
-            Título: {{ $atividade->titulo }}<br>
-            Data Início: {{ $atividade->data_inicio }}<br>
-            Data Fim: {{ $atividade->data_fim }}<br>
-            Responsável: {{ $atividade->matricula }}<br>
-            Descricao: {{ $atividade->descricao }}<br>
-            Status Atividade Id: {{ $atividade->status_atividade_id }}<br>
-            Status Atividade Descrição: {{ $atividade->status_atividade_descricao }}<br>
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $atividade->atividade_id }}</span>
+                </div>
 
+                <h3 class="sca-card__title">{{ $atividade->titulo }}</h3>
 
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Código</dt>
+                        <dd>{{ $atividade->codigo }}</dd>
+                    </div>
+                    <div>
+                        <dt>Plano de Ação</dt>
+                        <dd>{{ $atividade->plano_acao_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Período</dt>
+                        <dd>{{ $atividade->data_inicio }} — {{ $atividade->data_fim }}</dd>
+                    </div>
+                    <div>
+                        <dt>Responsável</dt>
+                        <dd>{{ $atividade->matricula }}</dd>
+                    </div>
+                    <div>
+                        <dt>Status</dt>
+                        <dd>{{ $atividade->status_atividade_descricao }} <span class="sca-card__muted">(#{{ $atividade->status_atividade_id }})</span></dd>
+                    </div>
+                </dl>
 
-            <a href="{{ route('atividades.show', ['atividade' => $atividade->atividade_id]) }}">Visualizar</a><br>
-            
-            <a href="{{ route('atividades.edit', ['atividade' => $atividade->atividade_id]) }}">Editar</a><br>
+                @if ($atividade->descricao)
+                    <p class="sca-card__description">{{ $atividade->descricao }}</p>
+                @endif
 
-            <form action="{{ route('atividades.destroy', ['atividade' => $atividade->atividade_id]) }}" method="POST">
-                @csrf
-                @method('delete')
-
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-            </form>
-            <hr>
+                <div class="sca-card__actions">
+                    <a href="{{ route('atividades.show', ['atividade' => $atividade->atividade_id]) }}" class="sca-link">Visualizar</a>
+                </div>
+            </div>
         @empty
-            Nenhum registro encontrado!
-    @endforelse
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
 
-    {{ $atividades->links() }}
-      
-        </ul>
+    <div class="sca-pagination">
+        {{ $atividades->links('pagination::bootstrap-5') }}
+    </div>
 @endsection

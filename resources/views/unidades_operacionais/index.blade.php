@@ -1,50 +1,47 @@
 @extends('layouts.app')
 
-@section('title', 'Página Inicial')
+@section('title', 'Unidades Operacionais')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Unidades Operacionais</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Unidades Operacionais</h1>
         </div>
-    </section> 
-        <ul class="list-group">
-            @forelse ($unidades_operacionais as $unidade_operacional)
-                Id: {{ $unidade_operacional->unidade_operacional_id }}<br>
-                Ativo: {{ $unidade_operacional->is_ativo }}<br>
-                Nome: {{ $unidade_operacional->nome }}<br>
-                Responsavel: {{ $unidade_operacional->responsavel_matricula }}<br>
-                Responsavel Substituto: {{ $unidade_operacional->responsavel_substituto_matricula }}<br>
+    </div>
 
-                <a href="{{ route('unidades_operacionais.show', ['unidade_operacional' => $unidade_operacional->unidade_operacional_id]) }}">Visualizar</a>
-            
-                <a href="{{ route('unidades_operacionais.edit', ['unidade_operacional' => $unidade_operacional->unidade_operacional_id]) }}">Editar</a>
+    <x-alert />
 
-                <form action="{{ route('unidades_operacionais.destroy', ['unidade_operacional' => $unidade_operacional->unidade_operacional_id]) }}" method="POST">
-                    @csrf
-                    @method('delete')
+    <div class="sca-card-list">
+        @forelse ($unidades_operacionais as $unidade_operacional)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $unidade_operacional->unidade_operacional_id }}</span>
+                </div>
 
-                    <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-                </form>     
-                    <hr>       
-            @empty
-                Nenhum registro encontrado!
-            @endforelse
+                <h3 class="sca-card__title">{{ $unidade_operacional->nome }}</h3>
 
-            {{ $unidades_operacionais->links() }}
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Ativo</dt>
+                        <dd>{{ $unidade_operacional->is_ativo ? 'Sim' : 'Não' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Responsável</dt>
+                        <dd>{{ $unidade_operacional->responsavel_matricula }}</dd>
+                    </div>
+                    <div>
+                        <dt>Responsável Substituto</dt>
+                        <dd>{{ $unidade_operacional->responsavel_substituto_matricula }}</dd>
+                    </div>
+                </dl>
 
-        </ul>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $unidades_operacionais->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
-<!--
-x unidade_operacional_id
-x is_ativo
-x nome
-responsavel_matricula
-responsavel_substituto_matricula
-
-
--->

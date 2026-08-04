@@ -1,40 +1,50 @@
-<!-- resources/views/home.blade.php -->
 @extends('layouts.app')
 
-@section('title', 'Página Inicial')
+@section('title', 'Empregados')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Empregados</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Empregados</h1>
         </div>
-    </section> 
-        <ul class="list-group">
-            @forelse ($empregados as $empregado)
-            Id: {{ $empregado->empregado_id }}<br>
-            Matricula: {{ $empregado->matricula }}<br>
-            Nome: {{ $empregado->nome }}<br>
-            login: {{ $empregado->login }}<br>
-            email: {{ $empregado->email }}<br>
+    </div>
 
-            <a href="{{ route('empregados.show', ['empregado' => $empregado->empregado_id]) }}">Visualizar</a><br>
-            
-            <a href="{{ route('empregados.edit', ['empregado' => $empregado->empregado_id]) }}">Editar</a><br>
+    <x-alert />
 
-            <form action="{{ route('empregados.destroy', ['empregado' => $empregado->empregado_id]) }}" method="POST">
-                @csrf
-                @method('delete')
+    <div class="sca-card-list">
+        @forelse ($empregados as $empregado)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $empregado->empregado_id }}</span>
+                </div>
 
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-            </form>            
-            @empty
-                Nenhum registro encontrado!
-            @endforelse
+                <h3 class="sca-card__title">{{ $empregado->nome }}</h3>
 
-            {{ $empregados->links() }}
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Matrícula</dt>
+                        <dd>{{ $empregado->matricula }}</dd>
+                    </div>
+                    <div>
+                        <dt>Login</dt>
+                        <dd>{{ $empregado->login }}</dd>
+                    </div>
+                    <div>
+                        <dt>E-mail</dt>
+                        <dd>{{ $empregado->email }}</dd>
+                    </div>
+                </dl>
 
-        </ul>
+                <div class="sca-card__actions">
+                    <a href="{{ route('empregados.show', ['empregado' => $empregado->empregado_id]) }}" class="sca-link">Visualizar</a>
+                </div>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $empregados->links('pagination::bootstrap-5') }}
+    </div>
 @endsection

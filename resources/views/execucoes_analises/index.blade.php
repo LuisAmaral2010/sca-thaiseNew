@@ -1,48 +1,62 @@
 @extends('layouts.app')
 
-@section('title', 'Página Inicial')
+@section('title', 'Execuções de Análises')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Execuções Analises</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Execuções de Análises</h1>
         </div>
-    </section> 
-        <ul class="list-group">
-            @forelse ($execucoes_analises as $execucao_analise)
-                Id: {{ $execucao_analise->execucao_analise_id }}<br>
-                Fração Amostra: {{ $execucao_analise->fracao_amostra_id }}<br>
-                Laudo: {{ $execucao_analise->laudo_id }}<br>
-                Ordem de Servico: {{ $execucao_analise->ordem_servico_id }}<br>
-                Servico: {{ $execucao_analise->servico_id }}<br>
-                Concluido: {{ $execucao_analise->is_concluido }}<br>
-                Data Conclusão: {{ $execucao_analise->data_conclusao }}<br>
-                Cancelado: {{ $execucao_analise->is_cancelado }}<br>
-                Data Cancelamento: {{ $execucao_analise->data_cancelamento }}<br>
-                Observacao: {{ $execucao_analise->observacao }}<br>
+    </div>
 
-                Data Criação: {{ $execucao_analise->created_at }}<br>
-                Data Atualização : {{ $execucao_analise->updated_at }}<br>
-                <a href="{{-- route('execucoes_analises.show', ['execucao_analise' => $execucao_analise->execucao_analise_id]) --}}">Visualizar</a><br>
-            
-                <a href="{{-- route('execucoes_analises.edit', ['execucao_analise' => $execucao_analise->execucao_analise_id]) --}}">Editar</a><br>
+    <x-alert />
 
-                <form action="{{-- route('execucoes_analises.destroy', ['execucao_analise' => $execucao_analise->execucao_analise_id]) --}}" method="POST">
-                    @csrf
-                    @method('delete')
+    <div class="sca-card-list">
+        @forelse ($execucoes_analises as $execucao_analise)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $execucao_analise->execucao_analise_id }}</span>
+                    <span class="sca-card__date">{{ $execucao_analise->created_at }}</span>
+                </div>
 
-                    <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-                </form>            
-                @empty
-                    Nenhum registro encontrado!
-            @endforelse
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Fração Amostra</dt>
+                        <dd>{{ $execucao_analise->fracao_amostra_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Laudo</dt>
+                        <dd>{{ $execucao_analise->laudo_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Ordem de Serviço</dt>
+                        <dd>{{ $execucao_analise->ordem_servico_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Serviço</dt>
+                        <dd>{{ $execucao_analise->servico_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Concluído</dt>
+                        <dd>{{ $execucao_analise->is_concluido ? 'Sim' : 'Não' }} <span class="sca-card__muted">{{ $execucao_analise->data_conclusao }}</span></dd>
+                    </div>
+                    <div>
+                        <dt>Cancelado</dt>
+                        <dd>{{ $execucao_analise->is_cancelado ? 'Sim' : 'Não' }} <span class="sca-card__muted">{{ $execucao_analise->data_cancelamento }}</span></dd>
+                    </div>
+                </dl>
 
-            {{ $execucoes_analises->links() }}
+                @if ($execucao_analise->observacao)
+                    <p class="sca-card__description">{{ $execucao_analise->observacao }}</p>
+                @endif
 
-        </ul>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $execucoes_analises->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
-

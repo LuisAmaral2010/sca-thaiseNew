@@ -1,53 +1,56 @@
 @extends('layouts.app')
 
-@section('title', 'Página Inicial')
+@section('title', 'Frações Amostras')
 
 @section('content')
-    <section id="perfil" class="clients section-bg">
-        <div class="container" data-aos="fade-up">
-
-            <div class="section-title">
-                <h3><span>Frações Amostras</span></h3>
-            </div>
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Frações Amostras</h1>
         </div>
-    </section> 
-        <ul class="list-group">
-            @forelse ($fracoes_amostras as $fracao_amostra)
-            Id: {{ $fracao_amostra->fracao_amostra_id }}<br>
-            Status: {{ $fracao_amostra->status_atual }}<br>
-            Data do Status: {{ $fracao_amostra->data_status_atual }}<br>
-            Observacao: {{ $fracao_amostra->observacao }}<br>
-            Amostra: {{ $fracao_amostra->amostra_id }}<br>
-            Servico: {{ $fracao_amostra->servico_id }}<br>
-            Ordem de Servico: {{ $fracao_amostra->ordem_servico_id }}<br>
-            Responsavel: {{ $fracao_amostra->responsavel_execucao_matricula }}<br>
+    </div>
 
-            <!-- <a href="{{-- route('fracoes_amostras.show', ['fracao_amostra' => $fracao_amostra->fracao_amostra_id]) --}}">Visualizar</a><br> -->
-            
-            <!-- <a href="{{-- route('fracoes_amostras.edit', ['fracao_amostra' => $fracao_amostra->fracao_amostra_id]) --}}">Editar</a><br> -->
+    <x-alert />
 
-            <!-- form action="{{-- route('fracoes_amostras.destroy', ['fracao_amostra' => $fracao_amostra->fracao_amostra_id]) --}}" method="POST"> -->
-                @csrf
-                @method('delete')
+    <div class="sca-card-list">
+        @forelse ($fracoes_amostras as $fracao_amostra)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $fracao_amostra->fracao_amostra_id }}</span>
+                    <span class="sca-card__date">{{ $fracao_amostra->data_status_atual }}</span>
+                </div>
 
-                <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
-            </!-->            
-            @empty
-                Nenhum registro encontrado!
-            @endforelse
+                <h3 class="sca-card__title">{{ $fracao_amostra->status_atual }}</h3>
 
-            {{ $fracoes_amostras->links() }}
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>Amostra</dt>
+                        <dd>{{ $fracao_amostra->amostra_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Serviço</dt>
+                        <dd>{{ $fracao_amostra->servico_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Ordem de Serviço</dt>
+                        <dd>{{ $fracao_amostra->ordem_servico_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Responsável</dt>
+                        <dd>{{ $fracao_amostra->responsavel_execucao_matricula }}</dd>
+                    </div>
+                </dl>
 
-        </ul>
+                @if ($fracao_amostra->observacao)
+                    <p class="sca-card__description">{{ $fracao_amostra->observacao }}</p>
+                @endif
+
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $fracoes_amostras->links('pagination::bootstrap-5') }}
+    </div>
 @endsection
-
-<!--
-x fracao_amostra_id
-x status_atual
-x data_status_atual
-x observacao
-x amostra_id Índice
-x servico_id Índice
-x ordem_servico_id Índice
-responsavel_execucao_matricula
--->

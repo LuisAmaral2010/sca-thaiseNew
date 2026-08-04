@@ -1,31 +1,50 @@
 @extends('layouts.app')
 
-@section('content')
-    <h2>Listar os Usuários</h2>
+@section('title', 'Usuários')
 
-    <a href="{{ route('users.create') }}">Cadastrar</a><br><br>
+@section('content')
+    <div class="sca-page-header">
+        <div>
+            <h1 class="sca-page-header__title">Usuários</h1>
+        </div>
+        <a href="{{ route('users.create') }}" class="sca-btn sca-btn--primary">Cadastrar</a>
+    </div>
 
     <x-alert />
 
-    {{-- Imprimir os registros --}}
-    @forelse ($users as $user)
-        ID: {{ $user->id }}<br>
-        Nome: {{ $user->name }}<br>
-        E-mail: {{ $user->email }}<br>
-        <a href="{{ route('users.show', ['user' => $user->id]) }}">Visualizar</a><br>
-        <a href="{{ route('users.edit', ['user' => $user->id]) }}">Editar</a><br>
+    <div class="sca-card-list">
+        @forelse ($users as $user)
+            <div class="sca-card">
+                <div class="sca-card__header">
+                    <span class="sca-badge">#{{ $user->id }}</span>
+                </div>
 
-        <form action="{{ route('users.destroy', ['user' => $user->id]) }}" method="POST">
-            @csrf
-            @method('delete')
+                <h3 class="sca-card__title">{{ $user->name }}</h3>
 
-            <button type="submit" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
+                <dl class="sca-card__meta">
+                    <div>
+                        <dt>E-mail</dt>
+                        <dd>{{ $user->email }}</dd>
+                    </div>
+                </dl>
 
-        </form>
-        <hr>
-    @empty
-        Nenhum registro encontrado!
-    @endforelse
+                <div class="sca-card__actions">
+                    <a href="{{ route('users.show', ['user' => $user->id]) }}" class="sca-link">Visualizar</a>
+                    <a href="{{ route('users.edit', ['user' => $user->id]) }}" class="sca-link">Editar</a>
 
-    {{ $users->links() }}
+                    <form action="{{ route('users.destroy', ['user' => $user->id]) }}" method="POST" class="sca-card__delete-form">
+                        @csrf
+                        @method('delete')
+                        <button type="submit" class="sca-link sca-link--danger" onclick="return confirm('Tem certeza que deseja apagar este registro?')">Apagar</button>
+                    </form>
+                </div>
+            </div>
+        @empty
+            <div class="sca-empty">Nenhum registro encontrado!</div>
+        @endforelse
+    </div>
+
+    <div class="sca-pagination">
+        {{ $users->links('pagination::bootstrap-5') }}
+    </div>
 @endsection

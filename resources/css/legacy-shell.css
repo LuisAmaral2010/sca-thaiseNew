@@ -352,6 +352,13 @@
     margin: 0 0 0.875rem;
 }
 
+.sca-card__description {
+    margin: 0 0 0.875rem;
+    font-size: 0.875rem;
+    color: var(--sca-muted-foreground);
+    line-height: 1.5;
+}
+
 .sca-card__meta dt {
     font-size: 0.75rem;
     color: var(--sca-muted-foreground);
