@@ -12,7 +12,6 @@
         ID: {{ $user->id }}<br>
         Nome: {{ $user->name }}<br>
         E-mail: {{ $user->email }}<br>
-        Password: {{$user->password}}<br>
         <a href="{{ route('users.show', ['user' => $user->id]) }}">Visualizar</a><br>
         <a href="{{ route('users.edit', ['user' => $user->id]) }}">Editar</a><br>
 
