@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Building2, FlaskConical, UserCog, UserCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -8,24 +8,28 @@ const perfis = [
         href: '/cra',
         icon: Building2,
         descricao: 'Recebe amostra, gera laudo pdf, gerencia lista de laboratórios e gerencia permissões de acesso.',
+        inertia: true,
     },
     {
         titulo: 'Laboratório',
         href: '/laboratorio',
         icon: FlaskConical,
         descricao: 'Aceita amostra e emite laudo doc.',
+        inertia: true,
     },
     {
         titulo: 'Resp Tec',
         href: '/resptec',
         icon: UserCog,
         descricao: 'Aprova laudo, gerencia permissões de laboratório e gerencia cadastro de análises.',
+        inertia: true,
     },
     {
         titulo: 'Solicitante',
         href: '/solicitacoes_servicos',
         icon: UserCircle,
         descricao: 'Gerencia suas requisições.',
+        inertia: false,
     },
 ];
 
@@ -37,8 +41,8 @@ export default function SelecionarPerfil() {
             <p className="text-lg text-muted-foreground">Selecione o perfil desejado:</p>
 
             <div className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {perfis.map(({ titulo, href, icon: Icon, descricao }) => (
-                    <a key={href} href={href} className="block">
+                {perfis.map(({ titulo, href, icon: Icon, descricao, inertia }) => {
+                    const CardLink = (
                         <Card className="h-full transition-shadow hover:shadow-md">
                             <CardHeader>
                                 <Icon className="size-8 text-primary" />
@@ -48,8 +52,18 @@ export default function SelecionarPerfil() {
                                 <CardDescription>{descricao}</CardDescription>
                             </CardContent>
                         </Card>
-                    </a>
-                ))}
+                    );
+
+                    return inertia ? (
+                        <Link key={href} href={href} className="block">
+                            {CardLink}
+                        </Link>
+                    ) : (
+                        <a key={href} href={href} className="block">
+                            {CardLink}
+                        </a>
+                    );
+                })}
             </div>
         </div>
     );

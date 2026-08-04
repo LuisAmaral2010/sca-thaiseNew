@@ -4,17 +4,16 @@ namespace App\Http\Controllers;
 use App\Models\SolicitacaoServico;
 
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class SolicitanteController extends Controller
 {
     // Listar as solicitacao_servicos
     public function index()
     {
-        //dd('Aqui');
-        // Recuperar os registros do Banco de Dados
-        $solicitacoes_servicos= SolicitacaoServico::OrderBy('solicitacao_servico_id', 'DESC')->paginate(3);
-        // Carregar a view
-        return view('solicitante.index', ['solicitacoes_servicos' => $solicitacoes_servicos]);
+        $solicitacoes_servicos = SolicitacaoServico::OrderBy('solicitacao_servico_id', 'DESC')->paginate(3);
+
+        return Inertia::render('Solicitante', ['solicitacoes_servicos' => $solicitacoes_servicos]);
     }
 
     // Visualizar a solicitacao_servico

@@ -34,6 +34,7 @@ use App\Models\Historico;
 use App\Models\Laudo;
 // use App\Models\ExecucaoAnalise
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -290,16 +291,16 @@ Route::get('/listasolicitacaoservico', [ListaSolicitacaoServicoController::class
     ->name('listasolicitacaoservico.index');
 
 Route::get('/cra', function () {
-    return view('/cra/index');
-});
+    return Inertia::render('Cra');
+})->name('cra');
 
 Route::get('/laboratorio', function () {
-    return view('/laboratorio/index');
-});
+    return Inertia::render('Laboratorio');
+})->name('laboratorio');
 
 Route::get('/resptec', function () {
-    return view('/resptec/index');
-});
+    return Inertia::render('Resptec');
+})->name('resptec');
 
 /*
 Route::get('/solicitante', function () {

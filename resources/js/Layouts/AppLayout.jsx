@@ -1,5 +1,14 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutDashboard, FlaskConical, FileText, ClipboardList, LogOut } from 'lucide-react';
+import {
+    LayoutDashboard,
+    FlaskConical,
+    FileText,
+    ClipboardList,
+    LogOut,
+    Building2,
+    UserCog,
+    UserCircle,
+} from 'lucide-react';
 import {
     Sidebar,
     SidebarContent,
@@ -31,6 +40,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 function useNavItems() {
     return [
         { title: 'Dashboard', href: route('dashboard.index'), icon: LayoutDashboard },
+        { title: 'CRA', href: route('cra'), icon: Building2 },
+        { title: 'Laboratório', href: route('laboratorio'), icon: FlaskConical },
+        { title: 'Resp Tec', href: route('resptec'), icon: UserCog },
+        { title: 'Solicitante', href: route('solicitante.index'), icon: UserCircle },
         { title: 'Amostras', href: route('amostras.index'), icon: FlaskConical },
         { title: 'Laudos', href: route('laudos.index'), icon: FileText },
         { title: 'Ordens de Serviço', href: route('ordens_servicos.index'), icon: ClipboardList },
