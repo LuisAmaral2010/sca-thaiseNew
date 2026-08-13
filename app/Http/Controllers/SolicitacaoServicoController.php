@@ -16,10 +16,28 @@ use Illuminate\Database\Eloquent\Model;
 class SolicitacaoServicoController extends Controller
 {
     // Listar as solicitacao_servicos
-    public function index()
+    public function index(Request $request)
     {
-        $solicitacoes_servicos = SolicitacaoServico::with('atividade')->paginate(10);
-        return view('solicitacoes_servicos.index', compact('solicitacoes_servicos'));
+        $request->validate([
+            'data_inicial' => ['nullable', 'date'],
+            'data_final' => ['nullable', 'date'],
+        ]);
+
+        $sortable = ['solicitacao_servico_id', 'data_solicitacao', 'descricao'];
+        $sort = in_array($request->query('sort'), $sortable, true) ? $request->query('sort') : 'data_solicitacao';
+        $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
+
+        $dataInicial = $request->query('data_inicial');
+        $dataFinal = $request->query('data_final');
+
+        $solicitacoes_servicos = SolicitacaoServico::with('atividade')
+            ->when($dataInicial, fn ($query) => $query->whereDate('data_solicitacao', '>=', $dataInicial))
+            ->when($dataFinal, fn ($query) => $query->whereDate('data_solicitacao', '<=', $dataFinal))
+            ->orderBy($sort, $direction)
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('solicitacoes_servicos.index', compact('solicitacoes_servicos', 'sort', 'direction', 'dataInicial', 'dataFinal'));
     }
 
     // Visualizar a solicitacao_servico

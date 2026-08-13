@@ -524,6 +524,19 @@
     border-color: var(--sca-destructive);
 }
 
+.sca-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sca-filter-bar .sca-field {
+    margin-bottom: 0;
+    min-width: 160px;
+}
+
 .sca-panel {
     border: 1px solid var(--sca-border);
     border-radius: var(--sca-radius);
@@ -626,6 +639,37 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+}
+
+.sca-table thead th:has(.sca-table__sort) {
+    padding: 0;
+}
+
+.sca-table__sort {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sca-table__sort:hover {
+    background: var(--sca-border);
+}
+
+.sca-table__sort.is-active {
+    color: var(--sca-foreground);
+}
+
+.sca-table__sort-icon {
+    font-size: 0.6875rem;
+    color: var(--sca-muted-foreground);
+}
+
+.sca-table__sort.is-active .sca-table__sort-icon {
+    color: var(--sca-foreground);
 }
 
 /* Restyle Bootstrap's modal shell (structure/behavior stays Bootstrap's) to match the neutral theme. */
