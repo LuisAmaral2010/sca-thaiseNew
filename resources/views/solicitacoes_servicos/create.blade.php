@@ -618,15 +618,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .then(async response => {
-                // Se der erro de validação, Laravel devolve 422
+                // Se der erro de validação/negócio, o backend devolve uma mensagem em JSON
                 if (!response.ok) {
-                    if (response.status === 422) {
+                    let mensagem = 'Erro ao salvar a solicitação.';
+                    try {
                         const data = await response.json();
-                        // aqui você pode tratar os erros se quiser exibir no topo
-                        alert('Há erros de validação no formulário.');
-                    } else {
-                        alert('Erro ao salvar a solicitação.');
+                        mensagem = data.message || mensagem;
+                    } catch (e) {
+                        // resposta não era JSON, mantém a mensagem genérica
                     }
+                    alert(mensagem);
                     throw new Error('Erro na requisição');
                 }
                 return response.json();
@@ -697,57 +698,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Botão "Finalizar" no modal — envia o formulário ao backend (store)
+    // Botão "Finalizar" no modal — a solicitação já foi salva ao clicar em "Salvar";
+    // aqui só fechamos o modal e seguimos para a URL retornada naquele momento.
     if (btnFinalizar) {
         btnFinalizar.addEventListener('click', function () {
-            // evita múltiplos cliques
-            btnFinalizar.disabled = true;
-            btnFinalizar.textContent = 'Enviando...';
+            try { modalResumo.hide(); } catch (e) {}
 
-            // Recria FormData a partir do form (para incluir possíveis inputs hidden atualizados)
-            const formDataFinal = new FormData(form);
-
-            fetch(form.action, {
-                method: 'POST',
-                body: formDataFinal,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(async response => {
-                if (!response.ok) {
-                    if (response.status === 422) {
-                        const erros = await response.json();
-                        // aqui você pode mapear erros para exibir no modal ou na página
-                        alert('Há erros de validação no formulário. Verifique os campos.');
-                    } else {
-                        alert('Erro ao salvar a solicitação.');
-                    }
-                    throw new Error('Erro na requisição');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Fechar modal (opcional)
-                try { modalResumo.hide(); } catch(e){}
-
-                // Se o backend retornou uma URL para redirecionar, segue-a
-                if (data && data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                    return;
-                }
-
-                // Caso contrário, redireciona para a lista
-                window.location.href = "{{ route('solicitacoes_servicos.index') }}";
-            })
-            .catch(err => {
-                console.error(err);
-            })
-            .finally(() => {
-                btnFinalizar.disabled = false;
-                btnFinalizar.textContent = 'Finalizar';
-            });
+            window.location.href = window.__redirectDepoisFinalizar
+                || "{{ route('solicitacoes_servicos.index') }}";
         });
     }
 
