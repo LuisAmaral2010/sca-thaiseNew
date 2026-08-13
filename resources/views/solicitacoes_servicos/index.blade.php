@@ -56,6 +56,8 @@
                             <td>{{ $solicitacao_servico->atividade->titulo ?? '—' }}</td>
                             <td>{{ $solicitacao_servico->empregado->nome }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span></td>
                             <td>
+                                <a href="{{ route('solicitacoes_servicos.show', $solicitacao_servico) }}" class="sca-btn sca-btn--outline sca-btn--sm">Detalhes</a>
+
                                 @can('index-solicitacao_servico')
                                     <a href="{{ route('solicitacao_servico.index', ['solicitacao_servico' => $solicitacao_servico->id]) }}" class="sca-link">Turmas</a>
                                 @endcan
