@@ -90,7 +90,7 @@ Route::prefix('amostras')->middleware('auth')->group(function(){
 });
 
 // Solicitação Serviços
-Route::prefix('solicitacoes_servicos')->group(function(){
+Route::prefix('solicitacoes_servicos')->middleware('auth')->group(function(){
     Route::get('/', [SolicitacaoServicoController::class, 'index'])->name('solicitacoes_servicos.index');
     Route::get('/create', [SolicitacaoServicoController::class, 'create'])->name('solicitacoes_servicos.create');
     Route::get('/{solicitacao_servico}', [SolicitacaoServicoController::class, 'show'])->name('solicitacoes_servicos.show');

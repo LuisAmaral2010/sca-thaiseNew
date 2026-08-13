@@ -42,20 +42,24 @@
                         <a class="sca-navbar__link {{ request()->is('solicitacao*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacao">Solicitante</a>
                     </nav>
 
-                    <div class="sca-navbar__user dropdown">
-                        <button class="sca-navbar__user-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="sca-avatar"><i class="bi bi-person-fill"></i></span>
-                            <span class="sca-navbar__user-name">{{ auth()->user()->name }}</span>
-                            <i class="bi bi-chevron-down sca-navbar__chevron"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end sca-dropdown-menu">
-                            <li>
-                                <a class="dropdown-item" href="/logout">
-                                    <i class="bi bi-box-arrow-right"></i> Sair
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    @auth
+                        <div class="sca-navbar__user dropdown">
+                            <button class="sca-navbar__user-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="sca-avatar"><i class="bi bi-person-fill"></i></span>
+                                <span class="sca-navbar__user-name">{{ auth()->user()->name }}</span>
+                                <i class="bi bi-chevron-down sca-navbar__chevron"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end sca-dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="/logout">
+                                        <i class="bi bi-box-arrow-right"></i> Sair
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    @else
+                        <a class="sca-navbar__link" href="{{ route('login') }}">Entrar</a>
+                    @endauth
                 </div>
             </div>
         </header><!-- End Header -->
