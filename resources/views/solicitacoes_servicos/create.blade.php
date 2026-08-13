@@ -1,272 +1,248 @@
 @extends('layouts.app')
 
+@section('title', 'Nova Solicitação de Serviço')
+
 @section('content')
-<div class="container">
-    <h1>Nova Solicitação de Serviço</h1>
+<div class="sca-page-header">
+    <div>
+        <h1 class="sca-page-header__title">Nova Solicitação de Serviço</h1>
+    </div>
+</div>
 
-    {{-- ERROS GERAIS --}}
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <strong>Há erros no formulário:</strong>
-            <ul class="mb-0">
-                @foreach($errors->all() as $erro)
-                    <li>{{ $erro }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+{{-- ERROS GERAIS --}}
+@if ($errors->any())
+    <div class="sca-alert sca-alert--error">
+        <strong>Há erros no formulário:</strong>
+        <ul class="mb-0">
+            @foreach($errors->all() as $erro)
+                <li>{{ $erro }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-    @php
-        $nomeSolicitante = auth()->user()->name ?? '—';
-        $dataSolicitacao = now()->format('d/m/Y');
-    @endphp
+@php
+    $nomeSolicitante = auth()->user()?->name ?? '—';
+    $dataSolicitacao = now()->format('d/m/Y');
+@endphp
 
-    <form action="{{ route('solicitacoes_servicos.store') }}" method="POST">
-        @csrf
+<form action="{{ route('solicitacoes_servicos.store') }}" method="POST">
+    @csrf
 
-        {{-- DADOS DA SOLICITAÇÃO --}}
-        <div class="card mb-3">
-            <input type="hidden" id="nomeSolicitante" value="{{ $nomeSolicitante }}">
-            <input type="hidden" id="dataSolicitacao" value="{{ $dataSolicitacao }}">
-            
-            <div class="card-header">Dados da Solicitação</div>
-            <div class="card-body">
-                {{-- Select de Atividade --}}
-                    <div class="row">
-                        <div class="col-sm-1">
-                            <label class="form-label">Atividade</label>
-                        </div>
-                                    
-                        <div class="col-sm-11">
-                            <select name="atividade_id"
-                                class="form-select @error('atividade_id') is-invalid @enderror"
-                                required>
-                                <option value="">Selecione...</option>
-                                @foreach($atividades as $atividade_id => $titulo)
-                                    <option value="{{ $atividade_id }}">{{ $titulo }}</option>
-                                @endforeach
-                            </select>
-                            @error('atividade_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                </div>
-                <br>
-                <!-- <div class="mb-3"> -->
-                <div class="row">
-                    <div class="col-sm-1">
-                        <label class="form-label">Descrição</label>
-                    </div>
-                    <div class="col-sm-11">
-                        <textarea class="form-control" rows="5" name="descricao"
-                            class="form-control @error('descricao') is-invalid @enderror"
-                            value="{{ old('descricao') }}" required></textarea>
-                        @error('descricao')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-                <!-- </div> -->
+    {{-- DADOS DA SOLICITAÇÃO --}}
+    <div class="sca-panel">
+        <input type="hidden" id="nomeSolicitante" value="{{ $nomeSolicitante }}">
+        <input type="hidden" id="dataSolicitacao" value="{{ $dataSolicitacao }}">
 
+        <div class="sca-panel__header">Dados da Solicitação</div>
+        <div class="sca-panel__body">
+            <div class="sca-field">
+                <label class="sca-field__label">Atividade</label>
+                <select name="atividade_id"
+                    class="sca-select @error('atividade_id') is-invalid @enderror"
+                    required>
+                    <option value="">Selecione...</option>
+                    @foreach($atividades as $atividade_id => $titulo)
+                        <option value="{{ $atividade_id }}">{{ $titulo }}</option>
+                    @endforeach
+                </select>
+                @error('atividade_id')
+                    <span class="sca-field__error">{{ $message }}</span>
+                @enderror
             </div>
-        </div>
 
-        {{-- PANEL / TABELA DE AMOSTRAS --}}
-        <div class="card">
-            <div class="card-header">
-                Amostras
-                <button type="button" class="btn btn-sm btn-primary float-end" id="btnAddAmostra">
-                    Adicionar Amostra
-                </button>
-            </div>
-            <div class="card-body">
-                <table class="table table-sm table-bordered" id="tabelaAmostras">
-                    <thead>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Validade (dias)</th>
-                            <th>Condição Armazenamento</th>
-                            <th style="width: 50px;">Remover</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            $oldAmostras = old('amostras', []);
-                        @endphp
-
-                        @foreach($oldAmostras as $i => $amostra)
-                            <tr>
-                                <td>
-                                    <input type="text" name="amostras[{{ $i }}][descricao]"
-                                           class="form-control"
-                                           value="{{ $amostra['descricao'] ?? '' }}">
-                                </td>
-                                <td>
-                                    <input type="number" name="amostras[{{ $i }}][validade_dias]"
-                                           class="form-control"
-                                           value="{{ $amostra['validade_dias'] ?? '' }}">
-                                </td>
-                                <td>
-                                    <input type="text" name="amostras[{{ $i }}][condicao_armazenamento]"
-                                           class="form-control"
-                                           value="{{ $amostra['condicao_armazenamento'] ?? '' }}">
-                                </td>
-                                <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-danger btn-remove-linha">&times;</button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-
-                <small class="text-muted">
-                    Você pode adicionar várias amostras. Linhas totalmente vazias serão ignoradas no salvamento.
-                </small>
-            </div>
-        </div>
-
-        <div class="mt-3">
-            {{-- Botão para abrir modal de serviços --}}
-            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalServicos">
-                Selecionar Serviços
-            </button>
-        </div>        
-                
-        {{-- MODAL SERVIÇOS --}}     
-        <div class="modal fade" id="modalServicos" tabindex="-1" aria-labelledby="modalServicosLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalServicosLabel">Selecionar Serviços</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                    </div>
-                    <div class="modal-body">
-                        {{-- Select de unidade operacional --}}
-                        <div class="mb-3">
-                            <label class="form-label">Unidade Operacional</label>
-                            <select id="selectUnidadeOperacional" class="form-select">
-                                <option value="">Selecione...</option>
-                                @foreach($unidadesOperacionais as $u)
-                                    <option value="{{ $u->unidade_operacional_id }}">
-                                        {{ $u->nome }} (ID: {{ $u->unidade_operacional_id }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="row">
-                        {{-- Tabela de serviços da unidade atual --}}
-                            <div class="col-md-7">
-                                <h6>Serviços da Unidade Selecionada</h6>
-                            </div>        
-                            <div> <!-- </div> -->
-                                <table class="table table-sm table-bordered" id="tabelaServicos">
-                                    <thead>
-                                        <tr>
-                                            <th style="width:40px;">#</th>
-                                            <th>Descrição</th>
-                                            <th>Tipo</th>
-                                            <th style="width:60px;">Selecionar</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {{-- preenchido via JS --}}
-                                    </tbody>
-                                </table>
-                                <small class="text-muted">
-                                    Marque os serviços desejados; eles serão enviados junto com a Solicitação.
-                                </small>
-                            </div>
-                        </div>     
-                    </div>
-                </div>
-            </div>   
-
-        </div>
-<!--    </form> -->
-<!--    </div> -->
-
-        {{-- Inputs hidden fora do modal, dentro do <form> --}}
-
-        <!-- <div id="servicosSelecionadosInputs"></div> -->
-        {{-- Serviços selecionados (inputs hidden gerados em JS) --}}
-            <div id="servicosSelecionadosInputs">
-                <div class="card mt-3">
-                    <div class="card-header">Serviços Selecionados</div>
-                    <div class="card-body">
-                        <ul id="listaServicosSelecionados" class="mb-0">
-                            {{-- preenchido via JS --}}
-                        </ul>
-                    </div>
-                </div>  
-            </div>    
-            <br>
-
-        <!---- -->
-        {{-- RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS --}}
-        <div class="card mt-4">
-            <div class="card-header">
-                Relação de Amostras x Unidades Operacionais / Serviços
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 35%;">Amostra</th>
-                                <th style="width: 25%;">Unidade Operacional</th>
-                                <th>Serviço</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resumoAmostrasServicosBody">
-                            <tr>
-                                <td colspan="3" class="text-center text-muted">
-                                    Preencha as amostras e selecione serviços para visualizar o resumo.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-3">
-            <button type="button" class="btn btn-success" id="btnSalvarAjax">
-                Salvar
-            </button>
-        </div>
-    </form> <!-- fechar aqui -->
-
-<!---- -->
-    {{-- MODAL RESUMO APÓS SALVAR --}}
-    <div class="modal fade" id="modalResumo" tabindex="-1" aria-labelledby="modalResumoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalResumoLabel">
-                        RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-
-                <div class="modal-body">
-                    {{-- Aqui vamos clonar a tabela de resumo já renderizada na tela --}}
-                    <div id="conteudoResumoModal"></div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Voltar
-                    </button>
-                    <button type="button" class="btn btn-primary" id="btnFinalizarResumo">
-                        Finalizar
-                    </button>
-                </div>
-
+            <div class="sca-field">
+                <label class="sca-field__label">Descrição</label>
+                <textarea rows="5" name="descricao"
+                    class="sca-textarea @error('descricao') is-invalid @enderror"
+                    required>{{ old('descricao') }}</textarea>
+                @error('descricao')
+                    <span class="sca-field__error">{{ $message }}</span>
+                @enderror
             </div>
         </div>
     </div>
-<!---- -->
+
+    {{-- PANEL / TABELA DE AMOSTRAS --}}
+    <div class="sca-panel">
+        <div class="sca-panel__header">
+            Amostras
+            <button type="button" class="sca-btn sca-btn--secondary sca-btn--sm" id="btnAddAmostra">
+                Adicionar Amostra
+            </button>
+        </div>
+        <div class="sca-panel__body">
+            <table class="sca-table" id="tabelaAmostras">
+                <thead>
+                    <tr>
+                        <th>Descrição</th>
+                        <th>Validade (dias)</th>
+                        <th>Condição Armazenamento</th>
+                        <th style="width: 50px;">Remover</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        $oldAmostras = old('amostras', []);
+                    @endphp
+
+                    @foreach($oldAmostras as $i => $amostra)
+                        <tr>
+                            <td>
+                                <input type="text" name="amostras[{{ $i }}][descricao]"
+                                       class="sca-input"
+                                       value="{{ $amostra['descricao'] ?? '' }}">
+                            </td>
+                            <td>
+                                <input type="number" name="amostras[{{ $i }}][validade_dias]"
+                                       class="sca-input"
+                                       value="{{ $amostra['validade_dias'] ?? '' }}">
+                            </td>
+                            <td>
+                                <input type="text" name="amostras[{{ $i }}][condicao_armazenamento]"
+                                       class="sca-input"
+                                       value="{{ $amostra['condicao_armazenamento'] ?? '' }}">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="sca-btn sca-btn--danger sca-btn--sm btn-remove-linha">&times;</button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <p class="sca-field__hint">
+                Você pode adicionar várias amostras. Linhas totalmente vazias serão ignoradas no salvamento.
+            </p>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{-- Botão para abrir modal de serviços --}}
+        <button type="button" class="sca-btn sca-btn--outline" data-bs-toggle="modal" data-bs-target="#modalServicos">
+            Selecionar Serviços
+        </button>
+    </div>
+
+    {{-- MODAL SERVIÇOS --}}
+    <div class="modal fade" id="modalServicos" tabindex="-1" aria-labelledby="modalServicosLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalServicosLabel">Selecionar Serviços</h5>
+                    <button type="button" class="sca-btn sca-btn--ghost sca-btn--icon" data-bs-dismiss="modal" aria-label="Fechar">&times;</button>
+                </div>
+                <div class="modal-body">
+                    {{-- Select de unidade operacional --}}
+                    <div class="sca-field">
+                        <label class="sca-field__label">Unidade Operacional</label>
+                        <select id="selectUnidadeOperacional" class="sca-select">
+                            <option value="">Selecione...</option>
+                            @foreach($unidadesOperacionais as $u)
+                                <option value="{{ $u->unidade_operacional_id }}">
+                                    {{ $u->nome }} (ID: {{ $u->unidade_operacional_id }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <h6>Serviços da Unidade Selecionada</h6>
+                    <table class="sca-table" id="tabelaServicos">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>Descrição</th>
+                                <th>Tipo</th>
+                                <th style="width:60px;">Selecionar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{-- preenchido via JS --}}
+                        </tbody>
+                    </table>
+                    <p class="sca-field__hint">
+                        Marque os serviços desejados; eles serão enviados junto com a Solicitação.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Serviços selecionados --}}
+    <div class="sca-panel">
+        <div class="sca-panel__header">Serviços Selecionados</div>
+        <div class="sca-panel__body">
+            <ul id="listaServicosSelecionados" class="mb-0">
+                {{-- preenchido via JS --}}
+            </ul>
+        </div>
+    </div>
+
+    {{-- Inputs hidden gerados via JS para envio de servicos[] ao backend --}}
+    <div id="servicosSelecionadosInputs"></div>
+
+    {{-- RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS --}}
+    <div class="sca-panel" id="painelResumo">
+        <div class="sca-panel__header">
+            Relação de Amostras x Unidades Operacionais / Serviços
+        </div>
+        <div class="sca-panel__body">
+            <table class="sca-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Amostra</th>
+                        <th style="width: 25%;">Unidade Operacional</th>
+                        <th>Serviço</th>
+                    </tr>
+                </thead>
+                <tbody id="resumoAmostrasServicosBody">
+                    <tr>
+                        <td colspan="3" class="text-center sca-field__hint">
+                            Preencha as amostras e selecione serviços para visualizar o resumo.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <button type="button" class="sca-btn sca-btn--primary" id="btnSalvarAjax">
+            Salvar
+        </button>
+    </div>
+</form>
+
+{{-- MODAL RESUMO APÓS SALVAR --}}
+<div class="modal fade" id="modalResumo" tabindex="-1" aria-labelledby="modalResumoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalResumoLabel">
+                    RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS
+                </h5>
+                <button type="button" class="sca-btn sca-btn--ghost sca-btn--icon" data-bs-dismiss="modal" aria-label="Fechar">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                {{-- Aqui vamos clonar a tabela de resumo já renderizada na tela --}}
+                <div id="conteudoResumoModal"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="sca-btn sca-btn--outline" data-bs-dismiss="modal">
+                    Voltar
+                </button>
+                <button type="button" class="sca-btn sca-btn--primary" id="btnFinalizarResumo">
+                    Finalizar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 {{-- JS para adicionar/remover linhas e manter os índices corretos --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -292,21 +268,21 @@ document.addEventListener('DOMContentLoaded', function () {
         tr.innerHTML = `
             <td>
                 <input type="text" name="amostras[0][descricao]"
-                    class="form-control"
+                    class="sca-input"
                     value="${(v.descricao || '').replace(/"/g,'&quot;')}">
             </td>
             <td>
                 <input type="number" name="amostras[0][validade_dias]"
-                    class="form-control"
+                    class="sca-input"
                     value="${v.validade_dias || ''}">
             </td>
             <td>
                 <input type="text" name="amostras[0][condicao_armazenamento]"
-                    class="form-control"
+                    class="sca-input"
                     value="${(v.condicao_armazenamento || '').replace(/"/g,'&quot;')}">
             </td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-danger btn-remove-linha">&times;</button>
+                <button type="button" class="sca-btn sca-btn--danger sca-btn--sm btn-remove-linha">&times;</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -517,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (amostras.length === 0) {
             resumoBody.innerHTML = `
                 <tr>
-                    <td colspan="3" class="text-center text-muted">
+                    <td colspan="3" class="text-center sca-field__hint">
                         Nenhuma amostra informada.
                     </td>
                 </tr>
@@ -528,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (Object.keys(servicosPorUnidade).length === 0) {
             resumoBody.innerHTML = `
                 <tr>
-                    <td colspan="3" class="text-center text-muted">
+                    <td colspan="3" class="text-center sca-field__hint">
                         Nenhum serviço selecionado.
                     </td>
                 </tr>
@@ -547,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let linhaGlobal = 0; // conta as linhas desta amostra
             n = 1;
             unidades.forEach(unidadeNome => {
-                
+
                 const servicos = servicosPorUnidade[unidadeNome];
                 servicos.forEach((s, idxServico) => {
                     const tr = document.createElement('tr');
@@ -568,14 +544,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     // 2ª coluna: Unidade Operacional (mesclada por unidade)
-                    
+
                     if (idxServico === 0) {
-                        
+
                         const tdUnidade = document.createElement('td');
                         tdUnidade.textContent = "Fração " + n + ": " + unidadeNome;
                         tdUnidade.rowSpan = servicos.length;
                         tr.appendChild(tdUnidade);
-                        
+
                     }
 
                     // 3ª coluna: Serviço
@@ -583,7 +559,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     tdServico.textContent = s.descricao;
                     if (s.tipo_servico) {
                         const small = document.createElement('small');
-                        small.classList.add('text-muted', 'ms-1');
+                        small.classList.add('sca-card__muted');
+                        small.style.marginLeft = '0.25rem';
                         small.textContent = `(${s.tipo_servico})`;
                         tdServico.appendChild(small);
                     }
@@ -657,66 +634,55 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 // Sucesso: registros gravados
                 // Agora mostra o modal com o resumo já existente na página.
-/*
-                const resumoTabela = document.querySelector('.card.mt-4'); // card do resumo
+                const resumoTabela = document.getElementById('painelResumo');
+
+                // Coleta dados do cabeçalho
+                const atividadeSelect  = document.querySelector('select[name="atividade_id"]');
+                const atividadeTexto   = atividadeSelect
+                    ? atividadeSelect.options[atividadeSelect.selectedIndex].text
+                    : '—';
+
+                const descricaoTextarea = document.querySelector('textarea[name="descricao"]');
+                const descricaoTexto    = descricaoTextarea ? descricaoTextarea.value : '—';
+
+                const nomeSolicitanteEl = document.getElementById('nomeSolicitante');
+                const dataSolicitacaoEl = document.getElementById('dataSolicitacao');
+
+                const nomeSolicitante   = nomeSolicitanteEl ? nomeSolicitanteEl.value : '—';
+                const dataSolicitacao   = dataSolicitacaoEl ? dataSolicitacaoEl.value : '—';
+
+                // Monta cabeçalho do modal
+                let cabecalhoHtml = `
+                    <div class="mb-3">
+                        <h6>Dados da Solicitação</h6>
+                        <table class="sca-table">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 180px;">Atividade</th>
+                                    <td>${atividadeTexto}</td>
+                                </tr>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <td>${descricaoTexto.replace(/\n/g, '<br>')}</td>
+                                </tr>
+                                <tr>
+                                    <th>Solicitante</th>
+                                    <td>${nomeSolicitante}</td>
+                                </tr>
+                                <tr>
+                                    <th>Data da Solicitação</th>
+                                    <td>${dataSolicitacao}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
                 if (resumoTabela) {
-                    // Clona apenas o conteúdo da tabela
-                    modalResumoBody.innerHTML = resumoTabela.outerHTML;
+                    modalResumoBody.innerHTML = cabecalhoHtml + resumoTabela.outerHTML;
                 } else {
-                    modalResumoBody.innerHTML = '<p class="text-muted">Resumo não encontrado.</p>';
+                    modalResumoBody.innerHTML = cabecalhoHtml + '<p class="sca-field__hint">Resumo não encontrado.</p>';
                 }
-*/
-
-const resumoTabela = document.querySelector('.card.mt-4'); // card do resumo
-
-// Coleta dados do cabeçalho
-const atividadeSelect  = document.querySelector('select[name="atividade_id"]');
-const atividadeTexto   = atividadeSelect
-    ? atividadeSelect.options[atividadeSelect.selectedIndex].text
-    : '—';
-
-const descricaoTextarea = document.querySelector('textarea[name="descricao"]');
-const descricaoTexto    = descricaoTextarea ? descricaoTextarea.value : '—';
-
-const nomeSolicitanteEl = document.getElementById('nomeSolicitante');
-const dataSolicitacaoEl = document.getElementById('dataSolicitacao');
-
-const nomeSolicitante   = nomeSolicitanteEl ? nomeSolicitanteEl.value : '—';
-const dataSolicitacao   = dataSolicitacaoEl ? dataSolicitacaoEl.value : '—';
-
-// Monta cabeçalho do modal
-let cabecalhoHtml = `
-    <div class="mb-3">
-        <h6>Dados da Solicitação</h6>
-        <table class="table table-sm">
-            <tbody>
-                <tr>
-                    <th style="width: 180px;">Atividade</th>
-                    <td>${atividadeTexto}</td>
-                </tr>
-                <tr>
-                    <th>Descrição</th>
-                    <td>${descricaoTexto.replace(/\n/g, '<br>')}</td>
-                </tr>
-                <tr>
-                    <th>Solicitante</th>
-                    <td>${nomeSolicitante}</td>
-                </tr>
-                <tr>
-                    <th>Data da Solicitação</th>
-                    <td>${dataSolicitacao}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-`;
-
-if (resumoTabela) {
-    modalResumoBody.innerHTML = cabecalhoHtml + resumoTabela.outerHTML;
-} else {
-    modalResumoBody.innerHTML = cabecalhoHtml + '<p class="text-muted">Resumo não encontrado.</p>';
-}
-
 
                 // Abre o modal
                 modalResumo.show();
@@ -731,21 +697,7 @@ if (resumoTabela) {
         });
     }
 
-    // Botão "Finalizar" no modal
-    /*
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', function () {
-            // Se o backend enviou uma URL de redirecionamento, usamos ela
-            if (window.__redirectDepoisFinalizar) {
-                window.location.href = window.__redirectDepoisFinalizar;
-            } else {
-                // Caso não tenha, redireciona para um índice ou página padrão
-                window.location.href = "{{ route('solicitacoes_servicos.index') }}";
-            }
-        });
-    }
-    */
-       // Botão "Finalizar" no modal — agora envia o formulário ao backend (store)
+    // Botão "Finalizar" no modal — envia o formulário ao backend (store)
     if (btnFinalizar) {
         btnFinalizar.addEventListener('click', function () {
             // evita múltiplos cliques
@@ -800,7 +752,5 @@ if (resumoTabela) {
     }
 
 });
-
-
 </script>
 @endsection

@@ -13,6 +13,8 @@
     --sca-accent-foreground: oklch(0.205 0 0);
     --sca-primary: oklch(0.205 0 0);
     --sca-primary-foreground: oklch(0.985 0 0);
+    --sca-destructive: oklch(0.55 0.2 25);
+    --sca-destructive-hover: oklch(0.45 0.22 25);
     --sca-radius: 0.625rem;
     --sca-font-sans: 'Geist', 'Segoe UI', Roboto, Arial, sans-serif;
 }
@@ -411,11 +413,11 @@
 }
 
 .sca-link--danger {
-    color: oklch(0.55 0.2 25);
+    color: var(--sca-destructive);
 }
 
 .sca-link--danger:hover {
-    color: oklch(0.45 0.22 25);
+    color: var(--sca-destructive-hover);
 }
 
 .sca-badge {
@@ -462,4 +464,184 @@
 
 .sca-pagination .page-item.disabled .page-link {
     color: var(--sca-muted-foreground);
+}
+
+/* ---- Form elements (inputs, panels, tables, modals) ---- */
+
+.sca-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+    font-family: var(--sca-font-sans);
+}
+
+.sca-field__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--sca-foreground);
+}
+
+.sca-field__hint {
+    font-size: 0.75rem;
+    color: var(--sca-muted-foreground);
+}
+
+.sca-field__error {
+    font-size: 0.75rem;
+    color: var(--sca-destructive);
+}
+
+.sca-input,
+.sca-select,
+.sca-textarea {
+    width: 100%;
+    border: 1px solid var(--sca-border);
+    border-radius: calc(var(--sca-radius) * 0.6);
+    background: var(--sca-background);
+    color: var(--sca-foreground);
+    font-size: 0.875rem;
+    font-family: var(--sca-font-sans);
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+}
+
+.sca-textarea {
+    resize: vertical;
+}
+
+.sca-input:focus,
+.sca-select:focus,
+.sca-textarea:focus {
+    outline: 2px solid var(--sca-primary);
+    outline-offset: 1px;
+    border-color: var(--sca-primary);
+}
+
+.sca-input.is-invalid,
+.sca-select.is-invalid,
+.sca-textarea.is-invalid {
+    border-color: var(--sca-destructive);
+}
+
+.sca-panel {
+    border: 1px solid var(--sca-border);
+    border-radius: var(--sca-radius);
+    background: var(--sca-background);
+    margin-bottom: 1rem;
+}
+
+.sca-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--sca-border);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    font-family: var(--sca-font-sans);
+    color: var(--sca-foreground);
+}
+
+.sca-panel__body {
+    padding: 1.25rem;
+}
+
+.sca-btn--secondary {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+}
+
+.sca-btn--secondary:hover {
+    opacity: 0.85;
+}
+
+.sca-btn--outline {
+    background: transparent;
+    border: 1px solid var(--sca-border);
+    color: var(--sca-foreground);
+}
+
+.sca-btn--outline:hover {
+    background: var(--sca-accent);
+}
+
+.sca-btn--danger {
+    background: var(--sca-destructive);
+    color: var(--sca-primary-foreground);
+}
+
+.sca-btn--danger:hover {
+    background: var(--sca-destructive-hover);
+}
+
+.sca-btn--sm {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.8125rem;
+}
+
+.sca-btn--ghost {
+    background: transparent;
+    color: var(--sca-muted-foreground);
+}
+
+.sca-btn--ghost:hover {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+}
+
+.sca-btn--icon {
+    padding: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+.sca-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sca-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    font-family: var(--sca-font-sans);
+}
+
+.sca-table th,
+.sca-table td {
+    border: 1px solid var(--sca-border);
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.sca-table thead th {
+    background: var(--sca-accent);
+    color: var(--sca-accent-foreground);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Restyle Bootstrap's modal shell (structure/behavior stays Bootstrap's) to match the neutral theme. */
+.modal-content {
+    border-radius: var(--sca-radius);
+    border: 1px solid var(--sca-border);
+    font-family: var(--sca-font-sans);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--sca-border);
+}
+
+.modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sca-foreground);
 }
