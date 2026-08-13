@@ -50,8 +50,8 @@ class SolicitacaoServicoController extends Controller
     // Carregar o formulário cadastrar nova Solicitação de Serviçoo
     public function create()
     {
-        // Captura o valor da matricula do usuário logado 
-        $matricula = auth()->user()->empregado->matricula;
+        // Captura o valor da matricula do usuário logado
+        $matricula = auth()->user()?->empregado?->matricula;
 
         // Filtra dados exatos ou usa LIKE para correspondência parcial
         $atividades = Atividade::query()
@@ -91,6 +91,16 @@ class SolicitacaoServicoController extends Controller
 
         $usuario = auth()->user();
         $matricula = optional($usuario->empregado)->matricula;
+
+        if (!$matricula) {
+            $message = 'Sua conta de usuário não está vinculada a um empregado, então não é possível registrar o solicitante. Contate o administrador do sistema para associar seu usuário a um registro de empregado.';
+
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->withInput()->withErrors(['erro' => $message]);
+        }
 
         DB::beginTransaction();
 

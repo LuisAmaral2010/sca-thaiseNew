@@ -23,6 +23,11 @@ class FracaoAmostra extends Model
         'observacao_cra',
         'recebido_cra',
         'amostra_id',
+        'status_atual',
+        'data_status_atual',
+        'servico_id',
+        'ordem_servico_id',
+        'responsavel_execucao_matricula',
         'created_at',
         'updated_at',
     ];
