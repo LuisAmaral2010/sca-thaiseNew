@@ -166,7 +166,7 @@ class SolicitacaoServicoController extends Controller
                             if($unidadeId != $unidadeAnteriorId ){
                                 $ordem = OrdemServico::create([
                                     // 'ordem_servico_id' => 1, //<se necessário definir manualmente>,
-                                    'status_atual' => 'ENVIADO_LABORATORIO',
+                                    'status_atual' => 'ENVIADO_CRA',
                                     'data_status_atual' => $now,
                                     'observacao' => null,
                                     'recebedor_matricula' => null,
