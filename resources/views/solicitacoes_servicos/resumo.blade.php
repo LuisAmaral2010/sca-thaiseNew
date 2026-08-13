@@ -9,33 +9,39 @@
     </div>
 </div>
 
-<div class="sca-panel">
-    <div class="sca-panel__header">Dados da Solicitação</div>
-    <div class="sca-panel__body">
-        <dl class="sca-card__meta">
-            <div>
-                <dt>Descrição</dt>
-                <dd>{{ $solicitacao->descricao }}</dd>
-            </div>
-            <div>
-                <dt>Atividade ID</dt>
-                <dd>{{ $solicitacao->atividade_id }}</dd>
-            </div>
-            <div>
-                <dt>Solicitante (matrícula)</dt>
-                <dd>{{ $solicitacao->solicitante_matricula }}</dd>
-            </div>
-            <div>
-                <dt>Data solicitação</dt>
-                <dd>{{ $solicitacao->data_solicitacao }}</dd>
-            </div>
-        </dl>
+{{-- Mesmo layout visual do modal #modalResumo (create.blade.php), como página normal --}}
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS
+        </h5>
     </div>
-</div>
 
-<div class="sca-panel">
-    <div class="sca-panel__header">Relação de Amostras x Unidades Operacionais / Serviços</div>
-    <div class="sca-panel__body">
+    <div class="modal-body">
+        <div class="mb-3">
+            <h6>Dados da Solicitação</h6>
+            <table class="sca-table">
+                <tbody>
+                    <tr>
+                        <th style="width: 180px;">Atividade ID</th>
+                        <td>{{ $solicitacao->atividade_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Descrição</th>
+                        <td>{{ $solicitacao->descricao }}</td>
+                    </tr>
+                    <tr>
+                        <th>Solicitante</th>
+                        <td>{{ $solicitacao->solicitante_matricula }}</td>
+                    </tr>
+                    <tr>
+                        <th>Data da Solicitação</th>
+                        <td>{{ $solicitacao->data_solicitacao }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <table class="sca-table mb-0">
             <thead>
                 <tr>
@@ -91,9 +97,14 @@
             </tbody>
         </table>
     </div>
-</div>
 
-<div class="mt-3 d-flex justify-content-between">
-    <a href="{{ route('solicitacoes_servicos.create') }}" class="sca-btn sca-btn--outline">Voltar</a>
+    <div class="modal-footer">
+        <a href="{{ route('solicitacoes_servicos.create') }}" class="sca-btn sca-btn--outline">
+            Voltar
+        </a>
+        <a href="{{ route('solicitacoes_servicos.index') }}" class="sca-btn sca-btn--primary">
+            Finalizar
+        </a>
+    </div>
 </div>
 @endsection
