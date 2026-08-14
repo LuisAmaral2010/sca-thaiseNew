@@ -10,6 +10,29 @@
     </div>
 </div>
 
+<div class="sca-panel">
+    <table class="sca-table mb-0">
+        <tbody>
+            <tr>
+                <th style="width: 180px;">Atividade</th>
+                <td>{{ $solicitacao->atividade->nome ?? '-' }}</td>
+            </tr>
+            <tr>
+                <th>Descrição</th>
+                <td>{{ $solicitacao->descricao ?? '-' }}</td>
+            </tr>
+            <tr>
+                <th>Solicitante</th>
+                <td>{{ $solicitacao->solicitante_matricula ?? '-' }}</td>
+            </tr>
+            <tr>
+                <th>Data de Solicitação</th>
+                <td>{{ optional($solicitacao->data_solicitacao)->format('d/m/Y') ?? '-' }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
 {{-- Mesmo layout visual do modal #modalResumo (create.blade.php), como página normal --}}
 <div class="modal-content">
     <div class="modal-header">
@@ -19,30 +42,6 @@
     </div>
 
     <div class="modal-body">
-        <div class="mb-3">
-            <h6>Dados da Solicitação</h6>
-            <table class="sca-table">
-                <tbody>
-                    <tr>
-                        <th style="width: 180px;">Descrição</th>
-                        <td>{{ $solicitacao->descricao ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Data de solicitação</th>
-                        <td>{{ optional($solicitacao->data_solicitacao)->format('d/m/Y') ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Atividade</th>
-                        <td>{{ $solicitacao->atividade->nome ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Solicitante (matrícula)</th>
-                        <td>{{ $solicitacao->solicitante_matricula ?? '-' }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
         <div class="mb-3">
             <h6>Amostras relacionadas</h6>
             @if($solicitacao->amostras && $solicitacao->amostras->count())
