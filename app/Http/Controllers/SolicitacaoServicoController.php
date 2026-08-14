@@ -11,7 +11,6 @@ use App\Models\Servico; // se você tiver um modelo Servico para buscar unidade 
 use App\Models\ExecucaoAnalise;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Model;
 
 class SolicitacaoServicoController extends Controller
 {
@@ -143,148 +142,79 @@ class SolicitacaoServicoController extends Controller
                 $amostrasCriadas[] = $amostra;
             }
 
-            // 4) CRIA AS ORDENS DE SERVIÇO (uma por serviço selecionado)
-            // Observação: a view envia apenas servicos[] com os IDs dos serviços.
-            // Aqui assumimos que existe um model Servico que relaciona serviço -> unidade_operacional_id.
+            // 4) CRIA AS ORDENS DE SERVIÇO (uma por unidade operacional distinta entre os serviços selecionados)
             $ordensCriadas = [];
             $servicos = $request->input('servicos', []);
-            $servicoParaOrdem = []; // map servico_id => ordem_servico_id (ou id)
+            $servicoParaOrdem = []; // servico_id => ordem_servico_id
+            $ordemPorUnidade = [];  // unidade_operacional_id => ordem_servico_id
 
-            if (!empty($servicos)) {
-                $unidadeId = null;
-                $unidadeAnteriorId = null;
-                foreach ($servicos as $servicoId) {
-                    
-                    // tenta recuperar unidade_operacional_id a partir do serviço
-                    //$unidadeId = null;
-                    try {
-                        $servicoModel = Servico::find($servicoId);
-                        if ($servicoModel) {
-                            // ajuste o nome do atributo conforme seu model (ex: unidade_operacional_id)
-                            $unidadeId = $servicoModel->unidade_operacional_id; // ?? null;
+            $servicoModels = Servico::whereIn('servico_id', $servicos)->get()->keyBy('servico_id');
 
-                            if($unidadeId != $unidadeAnteriorId ){
-                                $ordem = OrdemServico::create([
-                                    // 'ordem_servico_id' => 1, //<se necessário definir manualmente>,
-                                    'status_atual' => 'ENVIADO_CRA',
-                                    'data_status_atual' => $now,
-                                    'observacao' => null,
-                                    'recebedor_matricula' => null,
-                                    'solicitacao_servico_id' => $solicitacaoId,
-                                    'unidade_operacional_id' => $unidadeId, //$unidadeId,
-                                    //'created_at' => $now,
-                                    //'updated_at' => $now,
-                                ]);
+            foreach ($servicos as $servicoId) {
+                $servicoModel = $servicoModels->get($servicoId);
 
-                                $ordemId = $ordem->ordem_servico_id ?? $ordem->id ?? null;
-                                $servicoParaOrdem[$servicoId] = $ordemId;
-
-                                $ordensCriadas[] = [
-                                    //'ordem_servico_id' => $ordem->ordem_servico_id, //inclui agora 14/07/2026
-                                    'servico_id' => $servicoId, //retirar?
-                                    'ordem_servico_id' => $ordemId, //retirar?
-                                    //'ordem_servico_id' => $ordem->ordem_servico_id ?? $ordem->id ?? null,
-                                    'status_atual' => 'ENVIADO_LABORATORIO', //$ordem->status_atual,
-                                    'data_status_atual' => $now, //$ordem->data_status_atual,
-                                    'unidade_operacional_id' => $unidadeId, //$ordem->unidade_operacional_id,
-                                ];
-
-                                $unidadeAnteriorId = $unidadeId;
-                            }
-                        }
-                    } catch (\Throwable $e) {
-                        // se model Servico não existir, prossegue com unidade null
-                        //$unidadeId = null;
-                    }
-                    // Cria a ordem de serviço. Não atribuímos explicitamente ordem_servico_id
-                    // para que o DB gere o valor automático. Caso precise atribuir algum
-                    // valor específico, altere aqui.
-              
+                if (!$servicoModel) {
+                    continue;
                 }
+
+                $unidadeId = $servicoModel->unidade_operacional_id;
+
+                if (!isset($ordemPorUnidade[$unidadeId])) {
+                    $ordem = OrdemServico::create([
+                        'status_atual' => 'ENVIADO_CRA',
+                        'data_status_atual' => $now,
+                        'observacao' => null,
+                        'recebedor_matricula' => null,
+                        'solicitacao_servico_id' => $solicitacaoId,
+                        'unidade_operacional_id' => $unidadeId,
+                    ]);
+
+                    $ordemPorUnidade[$unidadeId] = $ordem->ordem_servico_id;
+
+                    $ordensCriadas[] = [
+                        'ordem_servico_id' => $ordem->ordem_servico_id,
+                        'status_atual' => $ordem->status_atual,
+                        'data_status_atual' => $now,
+                        'unidade_operacional_id' => $unidadeId,
+                    ];
+                }
+
+                $servicoParaOrdem[$servicoId] = $ordemPorUnidade[$unidadeId];
             }
 
-
-            // 5) CRIA AS FRAÇÕES (FracaoAmostra) para cada combinação amostra x serviço
-            // Campos conforme solicitado:
-            // 'fracao_amostra_id' => não informado (é PK/autoincrement)
-            // 'status_atual' => 'ENVIADO_LABORATORIO'
-            // 'data_status_atual' => now()
-            // 'observacao' => null
-            // 'amostra_id' => id da amostra criada
-            // 'servico_id' => id do serviço (do request)
-            // 'ordem_servico_id' => id da ordem correspondente (se existente)
-            // 'responsavel_execucao_matricula' => null
-            
+            // 5) CRIA AS FRAÇÕES (FracaoAmostra) e a respectiva ExecucaoAnalise
+            // para cada combinação amostra x serviço selecionado.
             $fracoesCriadas = [];
-            //$ordensCriadas = [];
-            //$servicos = $request->input('servicos', []);
-            $OrdemParaFracao = []; // ordem_servico_id => fracao_amostra_id (ou id)            
-            if (!empty($amostrasCriadas) && !empty($servicos)) {
-                foreach ($amostrasCriadas as $amostraModel) {
-                    $amostraId = $amostraModel->amostra_id ?? $amostraModel->id ?? 1;
 
-                    //foreach ($servicos as $servicoId) {
-                        $ordemId = $servicoParaOrdem[$servicoId] ?? null;
+            foreach ($amostrasCriadas as $amostraModel) {
+                foreach ($servicos as $servicoId) {
+                    $ordemId = $servicoParaOrdem[$servicoId] ?? null;
 
-                        $fracao = FracaoAmostra::create([
-                            // fracao_amostra_id => omitido para autoincrement/PK
-                            'status_atual' => 'ENVIADO_LABORATORIO',
-                            'data_status_atual' => $now,
-                            'observacao' => null,
-                            'amostra_id' => $amostraId,
-                            'servico_id' => $servicoId,
-                            'ordem_servico_id' => $ordemId,
-                            'responsavel_execucao_matricula' => null,
-                        ]);  
-                        
-                   //}
-                   
-                   /*
-                    foreach ($ordensCriadas as $ordemCriada) {
-                        ExecucaoAnalise::create([
-                            //'execucao_analise_id' => omitido para autoincrement/PK,
-                            'fracao_amostra_id' => 1,// $amostraId,
-                            'laudo_id' => null,
-                            'ordem_servico_id' => 1,//$ordemCriada->ordem_id,//$ordemId,
-                            'servico_id'  => 1, //$servicoId,
-                            'is_concluido' => false,
-                            'data_conclusao' => null,
-                            'is_cancelado' => false,
-                            'data_cancelamento' => null,
-                            'observacao' => null,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ]);
-                    }
-                    */
-                    $fracaoId = $fracao->fracao_amostra_id ?? $fracao->id ?? null;
-                    //$ordemParaFracao[$ordemId] = $fracaoId;
+                    $fracao = FracaoAmostra::create([
+                        'status_atual' => 'ENVIADO_LABORATORIO',
+                        'data_status_atual' => $now,
+                        'observacao' => null,
+                        'amostra_id' => $amostraModel->amostra_id,
+                        'servico_id' => $servicoId,
+                        'ordem_servico_id' => $ordemId,
+                        'responsavel_execucao_matricula' => null,
+                    ]);
 
-                    //fracoesCriadas[]; 
-                }
-            }
+                    $fracoesCriadas[] = $fracao;
 
-            if (!empty($ordensCriadas) && !empty($servicos)) {
-                foreach ($ordensCriadas as $ordemModel) {
-                    foreach ($servicos as $servicoId) {
-                        $servicoModel = Servico::find($servicoId);
-                        //$ordemId = $servicoParaOrdem[$servicoId] ?? null;
-                        $ordemId = $ordemModel['ordem_servico_id'];
-                        ExecucaoAnalise::create([
-                            //'execucao_analise_id' => omitido para autoincrement/PK,
-                            'fracao_amostra_id' => $fracaoId,
-                            'laudo_id' => null,
-                            'ordem_servico_id' => $ordemId,
-                            'servico_id'  => $servicoId, //1,//$servicoModel,
-                            'is_concluido' => false,
-                            'data_conclusao' => null,
-                            'is_cancelado' => false,
-                            'data_cancelamento' => null,
-                            'observacao' => null,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ]);
-                    }
+                    ExecucaoAnalise::create([
+                        'fracao_amostra_id' => $fracao->fracao_amostra_id,
+                        'laudo_id' => null,
+                        'ordem_servico_id' => $ordemId,
+                        'servico_id' => $servicoId,
+                        'is_concluido' => false,
+                        'data_conclusao' => null,
+                        'is_cancelado' => false,
+                        'data_cancelamento' => null,
+                        'observacao' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
                 }
             }
 
