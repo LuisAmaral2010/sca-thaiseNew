@@ -34,7 +34,7 @@ class FracaoAmostra extends Model
  
     public function amostra(): BelongsTo
     {
-        return $this->belongsTo(Amostra::class);
+        return $this->belongsTo(Amostra::class, 'amostra_id', 'amostra_id');
     }
 
     // Get the phone associated with the user.
@@ -43,10 +43,9 @@ class FracaoAmostra extends Model
         return $this->hasOne(OrdemServico::class);
     }
 
-    // Get the phone associated with the user.
-    public function servico(): HasOne
+    public function servico(): BelongsTo
     {
-        return $this->hasOne(Servico::class);
+        return $this->belongsTo(Servico::class, 'servico_id', 'servico_id');
     }
 
     public function execucoes_analises(): HasMany

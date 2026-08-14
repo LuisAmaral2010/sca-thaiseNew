@@ -30,8 +30,21 @@ class CraReceberAmostraController extends Controller
     {
         $ordens = $solicitacao_servico->ordemServico()
             ->where('status_atual', 'ENVIADO_CRA')
-            ->with('unidadeOperacional')
-            ->get();
+            ->with(['unidadeOperacional', 'fracoesAmostra.amostra', 'fracoesAmostra.servico'])
+            ->get()
+            ->each(function ($ordem) {
+                $ordem->amostras_descricao = $ordem->fracoesAmostra
+                    ->pluck('amostra.descricao')
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+
+                $ordem->analises_descricao = $ordem->fracoesAmostra
+                    ->pluck('servico.descricao')
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+            });
 
         abort_if($ordens->isEmpty(), 404);
 

@@ -20,8 +20,10 @@ export default function Ordens({ solicitacao, ordens }) {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Amostras</TableHead>
                                 <TableHead>Ordem de Serviço</TableHead>
                                 <TableHead>Unidade Operacional</TableHead>
+                                <TableHead>Análises</TableHead>
                                 <TableHead>Data Envio</TableHead>
                                 <TableHead />
                             </TableRow>
@@ -29,8 +31,10 @@ export default function Ordens({ solicitacao, ordens }) {
                         <TableBody>
                             {ordens.map((ordem) => (
                                 <TableRow key={ordem.ordem_servico_id}>
+                                    <TableCell>{ordem.amostras_descricao}</TableCell>
                                     <TableCell>#{ordem.ordem_servico_id}</TableCell>
                                     <TableCell>{ordem.unidade_operacional?.nome}</TableCell>
+                                    <TableCell>{ordem.analises_descricao}</TableCell>
                                     <TableCell>{ordem.data_status_atual}</TableCell>
                                     <TableCell>
                                         <Button

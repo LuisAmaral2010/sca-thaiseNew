@@ -29,6 +29,11 @@ class OrdemServico extends Model
         return $this->belongsTo(FracaoAmostra::class);
     }
 
+    public function fracoesAmostra(): HasMany
+    {
+        return $this->hasMany(FracaoAmostra::class, 'ordem_servico_id', 'ordem_servico_id');
+    }
+
     public function laudo(): BelongsTo
     {
         return $this->belongsTo(Laudo::class);
