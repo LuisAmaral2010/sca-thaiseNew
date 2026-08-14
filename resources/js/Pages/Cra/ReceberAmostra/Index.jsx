@@ -6,7 +6,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empt
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 
-export default function Index({ ordens }) {
+export default function Index({ solicitacoes }) {
     return (
         <AppLayout>
             <Head title="CRA — Receber Amostra" />
@@ -15,7 +15,7 @@ export default function Index({ ordens }) {
                     <CardTitle>Receber Amostra</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {ordens.length === 0 ? (
+                    {solicitacoes.length === 0 ? (
                         <Empty>
                             <EmptyHeader>
                                 <EmptyMedia>
@@ -28,28 +28,37 @@ export default function Index({ ordens }) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Ordem de Serviço</TableHead>
                                     <TableHead>Solicitação</TableHead>
                                     <TableHead>Descrição</TableHead>
-                                    <TableHead>Unidade Operacional</TableHead>
-                                    <TableHead>Data Envio</TableHead>
+                                    <TableHead>Atividade</TableHead>
+                                    <TableHead>Solicitante</TableHead>
+                                    <TableHead>Data Solicitação</TableHead>
+                                    <TableHead>Ordens Pendentes</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {ordens.map((ordem) => (
-                                    <TableRow key={ordem.ordem_servico_id}>
-                                        <TableCell>#{ordem.ordem_servico_id}</TableCell>
-                                        <TableCell>#{ordem.solicitacao_servico?.solicitacao_servico_id}</TableCell>
-                                        <TableCell>{ordem.solicitacao_servico?.descricao}</TableCell>
-                                        <TableCell>{ordem.unidade_operacional?.nome}</TableCell>
-                                        <TableCell>{ordem.data_status_atual}</TableCell>
+                                {solicitacoes.map((solicitacao) => (
+                                    <TableRow key={solicitacao.solicitacao_servico_id}>
+                                        <TableCell>#{solicitacao.solicitacao_servico_id}</TableCell>
+                                        <TableCell>{solicitacao.descricao}</TableCell>
+                                        <TableCell>{solicitacao.atividade?.titulo}</TableCell>
+                                        <TableCell>
+                                            {solicitacao.empregado?.nome}{' '}
+                                            {solicitacao.solicitante_matricula &&
+                                                `(${solicitacao.solicitante_matricula})`}
+                                        </TableCell>
+                                        <TableCell>{solicitacao.data_solicitacao}</TableCell>
+                                        <TableCell>{solicitacao.ordens_pendentes_count}</TableCell>
                                         <TableCell>
                                             <Button
                                                 size="sm"
                                                 render={
                                                     <Link
-                                                        href={route('cra.receber-amostra.show', ordem.ordem_servico_id)}
+                                                        href={route(
+                                                            'cra.receber-amostra.ordens',
+                                                            solicitacao.solicitacao_servico_id
+                                                        )}
                                                     />
                                                 }
                                             >

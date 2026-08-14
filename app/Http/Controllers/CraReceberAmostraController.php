@@ -3,20 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrdemServico;
+use App\Models\SolicitacaoServico;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class CraReceberAmostraController extends Controller
 {
-    // Lista as ordens de serviço aguardando recebimento pelo CRA
+    // Lista as solicitações de serviço com pelo menos uma ordem aguardando recebimento pelo CRA
     public function index()
     {
-        $ordens = OrdemServico::with(['solicitacaoServico', 'unidadeOperacional'])
-            ->where('status_atual', 'ENVIADO_CRA')
-            ->orderBy('data_status_atual')
+        $solicitacoes = SolicitacaoServico::whereHas('ordemServico', function ($query) {
+                $query->where('status_atual', 'ENVIADO_CRA');
+            })
+            ->with(['atividade', 'empregado'])
+            ->withCount(['ordemServico as ordens_pendentes_count' => function ($query) {
+                $query->where('status_atual', 'ENVIADO_CRA');
+            }])
+            ->orderBy('data_solicitacao')
             ->get();
 
-        return Inertia::render('Cra/ReceberAmostra/Index', compact('ordens'));
+        return Inertia::render('Cra/ReceberAmostra/Index', compact('solicitacoes'));
+    }
+
+    // Lista as ordens de serviço aguardando CRA de uma solicitação específica
+    public function ordens(SolicitacaoServico $solicitacao_servico)
+    {
+        $ordens = $solicitacao_servico->ordemServico()
+            ->where('status_atual', 'ENVIADO_CRA')
+            ->with('unidadeOperacional')
+            ->get();
+
+        abort_if($ordens->isEmpty(), 404);
+
+        return Inertia::render('Cra/ReceberAmostra/Ordens', [
+            'solicitacao' => $solicitacao_servico,
+            'ordens' => $ordens,
+        ]);
     }
 
     // Formulário de confirmação de recebimento de uma ordem específica

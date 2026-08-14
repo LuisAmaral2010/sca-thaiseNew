@@ -297,6 +297,7 @@ Route::get('/cra', function () {
 
 Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
     Route::get('/', [CraReceberAmostraController::class, 'index'])->name('cra.receber-amostra.index');
+    Route::get('/solicitacao/{solicitacao_servico}', [CraReceberAmostraController::class, 'ordens'])->name('cra.receber-amostra.ordens');
     Route::get('/{ordem_servico}', [CraReceberAmostraController::class, 'show'])->name('cra.receber-amostra.show');
     Route::post('/{ordem_servico}', [CraReceberAmostraController::class, 'store'])->name('cra.receber-amostra.store');
 });
