@@ -18,6 +18,7 @@ use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\UnidadeOperacionalController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ListaSolicitacaoServicoController;
+use App\Http\Controllers\CraReceberAmostraController;
 use App\Http\Controllers\PlanoAcaoController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\HomeController;
@@ -293,6 +294,12 @@ Route::get('/listasolicitacaoservico', [ListaSolicitacaoServicoController::class
 Route::get('/cra', function () {
     return Inertia::render('Cra');
 })->name('cra');
+
+Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
+    Route::get('/', [CraReceberAmostraController::class, 'index'])->name('cra.receber-amostra.index');
+    Route::get('/{ordem_servico}', [CraReceberAmostraController::class, 'show'])->name('cra.receber-amostra.show');
+    Route::post('/{ordem_servico}', [CraReceberAmostraController::class, 'store'])->name('cra.receber-amostra.store');
+});
 
 Route::get('/laboratorio', function () {
     return Inertia::render('Laboratorio');
