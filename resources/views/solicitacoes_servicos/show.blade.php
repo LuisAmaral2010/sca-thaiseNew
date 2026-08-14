@@ -15,7 +15,7 @@
         <tbody>
             <tr>
                 <th style="width: 180px;">Atividade</th>
-                <td>{{ $solicitacao->atividade->nome ?? '-' }}</td>
+                <td>{{ $solicitacao->atividade->titulo ?? '-' }}</td>
             </tr>
             <tr>
                 <th>Descrição</th>
@@ -27,7 +27,7 @@
             </tr>
             <tr>
                 <th>Data de Solicitação</th>
-                <td>{{ optional($solicitacao->data_solicitacao)->format('d/m/Y') ?? '-' }}</td>
+                <td>{{ $solicitacao->data_solicitacao ? \Carbon\Carbon::parse($solicitacao->data_solicitacao)->format('d/m/Y') : '-' }}</td>
             </tr>
         </tbody>
     </table>
