@@ -23,7 +23,10 @@
             </tr>
             <tr>
                 <th>Solicitante</th>
-                <td>{{ $solicitacao->solicitante_matricula ?? '-' }}</td>
+                <td>
+                    {{ $solicitacao->empregado->nome ?? '-' }}
+                    <span class="sca-card__muted">({{ $solicitacao->solicitante_matricula ?? '-' }})</span>
+                </td>
             </tr>
             <tr>
                 <th>Data de Solicitação</th>
