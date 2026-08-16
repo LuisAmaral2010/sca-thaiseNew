@@ -64,7 +64,7 @@ export default function Ordens({ solicitacao, linhas }) {
                         </TableCell>
                         {idxServico === 0 && (
                             <TableCell rowSpan={itensUnidade.length}>
-                                <div className="flex gap-2">
+                                <div className="flex w-full justify-center gap-2">
                                     <Button
                                         size="sm"
                                         render={
@@ -113,7 +113,37 @@ export default function Ordens({ solicitacao, linhas }) {
                                 <TableHead>Amostra</TableHead>
                                 <TableHead>Unidade Operacional</TableHead>
                                 <TableHead>Serviço</TableHead>
-                                <TableHead />
+                                <TableHead>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            render={
+                                                <Link
+                                                    href={route(
+                                                        'cra.receber-amostra.receber-todas',
+                                                        solicitacao.solicitacao_servico_id
+                                                    )}
+                                                />
+                                            }
+                                        >
+                                            Receber todas
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            render={
+                                                <Link
+                                                    href={route(
+                                                        'cra.receber-amostra.rejeitar-todas',
+                                                        solicitacao.solicitacao_servico_id
+                                                    )}
+                                                />
+                                            }
+                                        >
+                                            Rejeitar todas
+                                        </Button>
+                                    </div>
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>{rows}</TableBody>

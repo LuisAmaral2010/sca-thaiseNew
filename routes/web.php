@@ -298,6 +298,10 @@ Route::get('/cra', function () {
 Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
     Route::get('/', [CraReceberAmostraController::class, 'index'])->name('cra.receber-amostra.index');
     Route::get('/solicitacao/{solicitacao_servico}', [CraReceberAmostraController::class, 'ordens'])->name('cra.receber-amostra.ordens');
+    Route::get('/solicitacao/{solicitacao_servico}/receber-todas', [CraReceberAmostraController::class, 'receberTodasForm'])->name('cra.receber-amostra.receber-todas');
+    Route::post('/solicitacao/{solicitacao_servico}/receber-todas', [CraReceberAmostraController::class, 'receberTodas'])->name('cra.receber-amostra.receber-todas.store');
+    Route::get('/solicitacao/{solicitacao_servico}/rejeitar-todas', [CraReceberAmostraController::class, 'rejeitarTodasForm'])->name('cra.receber-amostra.rejeitar-todas');
+    Route::post('/solicitacao/{solicitacao_servico}/rejeitar-todas', [CraReceberAmostraController::class, 'rejeitarTodas'])->name('cra.receber-amostra.rejeitar-todas.store');
     Route::get('/{ordem_servico}', [CraReceberAmostraController::class, 'show'])->name('cra.receber-amostra.show');
     Route::post('/{ordem_servico}', [CraReceberAmostraController::class, 'store'])->name('cra.receber-amostra.store');
     Route::get('/{ordem_servico}/rejeitar', [CraReceberAmostraController::class, 'rejeitarForm'])->name('cra.receber-amostra.rejeitar');
