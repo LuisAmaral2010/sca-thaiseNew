@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ClipboardListIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function Index({ solicitacoes }) {
                                     <TableHead>Solicitante</TableHead>
                                     <TableHead>Data Solicitação</TableHead>
                                     <TableHead>Ordens Pendentes</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead />
                                 </TableRow>
                             </TableHeader>
@@ -50,6 +52,13 @@ export default function Index({ solicitacoes }) {
                                         </TableCell>
                                         <TableCell>{solicitacao.data_solicitacao}</TableCell>
                                         <TableCell>{solicitacao.ordens_pendentes_count}</TableCell>
+                                        <TableCell>
+                                            {solicitacao.ordens_rejeitadas_count > 0 && (
+                                                <Badge variant="destructive">
+                                                    Rejeitado ({solicitacao.ordens_rejeitadas_count})
+                                                </Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell>
                                             <Button
                                                 size="sm"
