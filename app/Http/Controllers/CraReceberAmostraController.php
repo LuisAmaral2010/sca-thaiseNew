@@ -25,32 +25,45 @@ class CraReceberAmostraController extends Controller
         return Inertia::render('Cra/ReceberAmostra/Index', compact('solicitacoes'));
     }
 
-    // Lista as ordens de serviço aguardando CRA de uma solicitação específica
+    // Lista, na forma de Amostra x Unidade Operacional / Serviço, as ordens de
+    // serviço aguardando CRA de uma solicitação específica — mesma relação
+    // exibida no painel de resumo do formulário de criação da solicitação.
     public function ordens(SolicitacaoServico $solicitacao_servico)
     {
         $ordens = $solicitacao_servico->ordemServico()
             ->where('status_atual', 'ENVIADO_CRA')
             ->with(['unidadeOperacional', 'fracoesAmostra.amostra', 'fracoesAmostra.servico'])
-            ->get()
-            ->each(function ($ordem) {
-                $ordem->amostras_descricao = $ordem->fracoesAmostra
-                    ->pluck('amostra.descricao')
-                    ->filter()
-                    ->unique()
-                    ->implode(', ');
-
-                $ordem->analises_descricao = $ordem->fracoesAmostra
-                    ->pluck('servico.descricao')
-                    ->filter()
-                    ->unique()
-                    ->implode(', ');
-            });
+            ->get();
 
         abort_if($ordens->isEmpty(), 404);
 
+        $linhas = $ordens->flatMap(function ($ordem) {
+            if ($ordem->fracoesAmostra->isEmpty()) {
+                return [[
+                    'ordem_servico_id' => $ordem->ordem_servico_id,
+                    'unidade_operacional' => $ordem->unidadeOperacional->nome ?? '—',
+                    'amostra_descricao' => null,
+                    'amostra_validade_dias' => null,
+                    'amostra_condicao_armazenamento' => null,
+                    'servico_descricao' => null,
+                    'servico_tipo_servico' => null,
+                ]];
+            }
+
+            return $ordem->fracoesAmostra->map(fn ($fracao) => [
+                'ordem_servico_id' => $ordem->ordem_servico_id,
+                'unidade_operacional' => $ordem->unidadeOperacional->nome ?? '—',
+                'amostra_descricao' => $fracao->amostra->descricao ?? null,
+                'amostra_validade_dias' => $fracao->amostra->validade_dias ?? null,
+                'amostra_condicao_armazenamento' => $fracao->amostra->condicao_armazenamento ?? null,
+                'servico_descricao' => $fracao->servico->descricao ?? null,
+                'servico_tipo_servico' => $fracao->servico->tipo_servico ?? null,
+            ]);
+        })->values();
+
         return Inertia::render('Cra/ReceberAmostra/Ordens', [
             'solicitacao' => $solicitacao_servico,
-            'ordens' => $ordens,
+            'linhas' => $linhas,
         ]);
     }
 
@@ -84,5 +97,37 @@ class CraReceberAmostraController extends Controller
         return redirect()
             ->route('cra.receber-amostra.index')
             ->with('success', 'Amostra recebida com sucesso!');
+    }
+
+    // Formulário de confirmação de rejeição de uma ordem específica
+    public function rejeitarForm(OrdemServico $ordem_servico)
+    {
+        abort_unless($ordem_servico->status_atual === 'ENVIADO_CRA', 404);
+
+        $ordem_servico->load(['solicitacaoServico', 'unidadeOperacional']);
+
+        return Inertia::render('Cra/ReceberAmostra/Rejeitar', ['ordem' => $ordem_servico]);
+    }
+
+    // Confirma a rejeição da amostra pelo CRA
+    public function rejeitar(Request $request, OrdemServico $ordem_servico)
+    {
+        abort_unless($ordem_servico->status_atual === 'ENVIADO_CRA', 404);
+
+        $validated = $request->validate([
+            'data_rejeicao' => ['required', 'date'],
+            'motivo' => ['required', 'string', 'max:255'],
+        ]);
+
+        $ordem_servico->update([
+            'status_atual' => 'REJEITADO_CRA',
+            'data_status_atual' => $validated['data_rejeicao'],
+            'observacao' => $validated['motivo'],
+            'recebedor_matricula' => auth()->user()?->empregado?->matricula,
+        ]);
+
+        return redirect()
+            ->route('cra.receber-amostra.index')
+            ->with('success', 'Amostra rejeitada com sucesso!');
     }
 }

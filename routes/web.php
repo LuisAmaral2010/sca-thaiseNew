@@ -300,6 +300,8 @@ Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
     Route::get('/solicitacao/{solicitacao_servico}', [CraReceberAmostraController::class, 'ordens'])->name('cra.receber-amostra.ordens');
     Route::get('/{ordem_servico}', [CraReceberAmostraController::class, 'show'])->name('cra.receber-amostra.show');
     Route::post('/{ordem_servico}', [CraReceberAmostraController::class, 'store'])->name('cra.receber-amostra.store');
+    Route::get('/{ordem_servico}/rejeitar', [CraReceberAmostraController::class, 'rejeitarForm'])->name('cra.receber-amostra.rejeitar');
+    Route::post('/{ordem_servico}/rejeitar', [CraReceberAmostraController::class, 'rejeitar'])->name('cra.receber-amostra.rejeitar.store');
 });
 
 Route::get('/laboratorio', function () {
