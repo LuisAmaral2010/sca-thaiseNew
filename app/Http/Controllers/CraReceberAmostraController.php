@@ -9,12 +9,10 @@ use Inertia\Inertia;
 
 class CraReceberAmostraController extends Controller
 {
-    // Lista as solicitações de serviço com ordens aguardando ou rejeitadas pelo CRA
+    // Lista as solicitações de serviço aguardando recebimento pelo CRA
     public function index()
     {
-        $solicitacoes = SolicitacaoServico::whereHas('ordemServico', function ($query) {
-                $query->whereIn('status_atual', ['ENVIADO_CRA', 'REJEITADO_CRA']);
-            })
+        $solicitacoes = SolicitacaoServico::where('status', 'ENVIADO_CRA')
             ->with(['atividade', 'empregado'])
             ->withCount(['ordemServico as ordens_pendentes_count' => function ($query) {
                 $query->where('status_atual', 'ENVIADO_CRA');
