@@ -5,10 +5,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-export default function Show({ ordem }) {
+export default function Show({ ordem, fracao_amostra_id, amostra_descricao }) {
     const { data, setData, post, processing, errors } = useForm({
         data_recebimento: new Date().toISOString().slice(0, 10),
         observacao: '',
+        fracao_amostra_id: fracao_amostra_id ?? null,
     });
 
     function submit(e) {
@@ -37,6 +38,12 @@ export default function Show({ ordem }) {
                                 <dt className="text-muted-foreground">Unidade Operacional</dt>
                                 <dd>{ordem.unidade_operacional?.nome}</dd>
                             </div>
+                            {amostra_descricao && (
+                                <div>
+                                    <dt className="text-muted-foreground">Amostra</dt>
+                                    <dd>{amostra_descricao}</dd>
+                                </div>
+                            )}
                         </dl>
 
                         <FieldGroup>
@@ -66,7 +73,17 @@ export default function Show({ ordem }) {
                         </FieldGroup>
                     </CardContent>
                     <CardFooter className="justify-end gap-2">
-                        <Button variant="outline" render={<Link href={route('cra.receber-amostra.index')} />}>
+                        <Button
+                            variant="outline"
+                            render={
+                                <Link
+                                    href={route(
+                                        'cra.receber-amostra.ordens',
+                                        ordem.solicitacao_servico?.solicitacao_servico_id
+                                    )}
+                                />
+                            }
+                        >
                             Cancelar
                         </Button>
                         <Button type="submit" disabled={processing}>

@@ -22,6 +22,7 @@ class OrdemServico extends Model
         'recebedor_matricula',
         'solicitacao_servico_id',
         'unidade_operacional_id',
+        'data_aceite_laboratorio',
     ];
 
     public function fracaoAmostra(): BelongsTo
@@ -75,6 +76,6 @@ class OrdemServico extends Model
 
     public function execucoes_analises(): HasMany
     {
-        return $this->hasMany(ExecucaoAnalise::class);
-    }   
+        return $this->hasMany(ExecucaoAnalise::class, 'ordem_servico_id', 'ordem_servico_id');
+    }
 }

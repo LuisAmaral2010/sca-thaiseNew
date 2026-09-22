@@ -2,6 +2,9 @@
 
 @section('title', 'Solicitações de Serviço')
 
+@section('hide_navbar', '1')
+@section('use_sidebar', '1')
+
 @section('content')
     <div class="sca-page-header">
         <div>
@@ -43,6 +46,7 @@
                         <x-sortable-th column="data_solicitacao" :sort="$sort" :direction="$direction">Data</x-sortable-th>
                         <x-sortable-th column="descricao" :sort="$sort" :direction="$direction">Descrição</x-sortable-th>
                         <th>Atividade</th>
+                        <th>Status</th>
                         <th>Solicitante</th>
                         <th>Ações</th>
                     </tr>
@@ -54,7 +58,8 @@
                             <td>{{ \Carbon\Carbon::parse($solicitacao_servico->data_solicitacao)->format('d/m/Y') }}</td>
                             <td>{{ $solicitacao_servico->descricao }}</td>
                             <td>{{ $solicitacao_servico->atividade->titulo ?? '—' }}</td>
-                            <td>{{ $solicitacao_servico->empregado->nome }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span></td>
+                            <td><span class="sca-badge">{{ $solicitacao_servico->status }}</span></td>
+                            <td>{{ $solicitacao_servico->empregado->nome ?? '—' }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span></td>
                             <td>
                                 <a href="{{ route('solicitacoes_servicos.show', $solicitacao_servico) }}" class="sca-btn sca-btn--outline sca-btn--sm">Detalhes</a>
 

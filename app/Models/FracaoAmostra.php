@@ -50,6 +50,6 @@ class FracaoAmostra extends Model
 
     public function execucoes_analises(): HasMany
     {
-        return $this->hasMany(ExecucaoAnalise::class);
-    }    
+        return $this->hasMany(ExecucaoAnalise::class, 'fracao_amostra_id', 'fracao_amostra_id');
+    }
 }

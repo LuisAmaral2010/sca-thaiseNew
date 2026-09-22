@@ -2,6 +2,9 @@
 
 @section('title', 'Nova Solicitação de Serviço')
 
+@section('hide_navbar', '1')
+@section('use_sidebar', '1')
+
 @section('content')
 <div class="sca-page-header">
     <div>
@@ -206,9 +209,20 @@
         </div>
     </div>
 
-    <div class="mt-3">
+    <div class="mt-3" id="painelAcaoSalvar">
         <button type="button" class="sca-btn sca-btn--primary" id="btnSalvarAjax">
             Salvar
+        </button>
+    </div>
+
+    {{-- Ações finais: só aparecem depois de Finalizar, enquanto a solicitação
+         ainda está em rascunho (status CRIADO) --}}
+    <div class="mt-3" id="painelAcoesFinais" style="display:none;">
+        <button type="button" class="sca-btn sca-btn--outline" id="btnCancelarSolicitacao">
+            Cancelar
+        </button>
+        <button type="button" class="sca-btn sca-btn--primary" id="btnEnviarCra">
+            Enviar para CRA
         </button>
     </div>
 </form>
@@ -688,8 +702,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Abre o modal
                 modalResumo.show();
 
-                // Se o backend devolver uma URL de redirecionamento, guardamos
-                window.__redirectDepoisFinalizar = data.redirect_url || null;
+                // Guardamos o id da solicitação recém-criada (status CRIADO)
+                // para usar nas ações de Cancelar / Enviar para CRA.
+                window.__solicitacaoIdCriada = data.id || null;
             })
             .catch(err => {
                 console.error(err);
@@ -698,14 +713,107 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Botão "Finalizar" no modal — a solicitação já foi salva ao clicar em "Salvar";
-    // aqui só fechamos o modal e seguimos para a URL retornada naquele momento.
+    // Botão "Finalizar" no modal — a solicitação já foi salva (em status CRIADO)
+    // ao clicar em "Salvar"; aqui gravamos o número da solicitação
+    // (00001-yyyy), fechamos o modal e, na própria página de create,
+    // trocamos o botão "Salvar" pelas ações "Cancelar" / "Enviar para CRA".
     if (btnFinalizar) {
         btnFinalizar.addEventListener('click', function () {
-            try { modalResumo.hide(); } catch (e) {}
+            const id = window.__solicitacaoIdCriada;
 
-            window.location.href = window.__redirectDepoisFinalizar
-                || "{{ route('solicitacoes_servicos.index') }}";
+            if (!id) {
+                alert('Não foi possível identificar a solicitação criada.');
+                return;
+            }
+
+            btnFinalizar.disabled = true;
+
+            fetch(`{{ url('solicitacoes_servicos') }}/${id}/finalizar`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(async response => {
+                let data = {};
+                try { data = await response.json(); } catch (e) {}
+
+                if (!response.ok || !data.success) {
+                    alert(data.message || 'Não foi possível finalizar a solicitação.');
+                    btnFinalizar.disabled = false;
+                    return;
+                }
+
+                try { modalResumo.hide(); } catch (e) {}
+
+                const painelAcaoSalvar  = document.getElementById('painelAcaoSalvar');
+                const painelAcoesFinais = document.getElementById('painelAcoesFinais');
+
+                if (painelAcaoSalvar) painelAcaoSalvar.style.display = 'none';
+                if (painelAcoesFinais) painelAcoesFinais.style.display = 'block';
+
+                form.querySelectorAll('input, textarea, select, button').forEach(el => {
+                    if (el.id !== 'btnCancelarSolicitacao' && el.id !== 'btnEnviarCra') {
+                        el.disabled = true;
+                    }
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Não foi possível finalizar a solicitação.');
+                btnFinalizar.disabled = false;
+            });
+        });
+    }
+
+    function postAcaoSolicitacao(caminho, botao) {
+        const id = window.__solicitacaoIdCriada;
+
+        if (!id) {
+            alert('Não foi possível identificar a solicitação criada.');
+            return;
+        }
+
+        botao.disabled = true;
+
+        fetch(`{{ url('solicitacoes_servicos') }}/${id}/${caminho}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(async response => {
+            let data = {};
+            try { data = await response.json(); } catch (e) {}
+
+            if (!response.ok || !data.success) {
+                alert(data.message || 'Não foi possível concluir a ação.');
+                botao.disabled = false;
+                return;
+            }
+
+            window.location.href = data.redirect_url || "{{ route('solicitacoes_servicos.index') }}";
+        })
+        .catch(err => {
+            console.error(err);
+            botao.disabled = false;
+        });
+    }
+
+    const btnCancelarSolicitacao = document.getElementById('btnCancelarSolicitacao');
+    const btnEnviarCra = document.getElementById('btnEnviarCra');
+
+    if (btnCancelarSolicitacao) {
+        btnCancelarSolicitacao.addEventListener('click', function () {
+            postAcaoSolicitacao('cancelar', btnCancelarSolicitacao);
+        });
+    }
+
+    if (btnEnviarCra) {
+        btnEnviarCra.addEventListener('click', function () {
+            postAcaoSolicitacao('enviar-cra', btnEnviarCra);
         });
     }
 

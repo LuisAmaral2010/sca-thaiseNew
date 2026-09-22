@@ -33,6 +33,12 @@ class Atividade extends Model
         return $this->hasMany(SolicitacaoServico::class, 'atividade_id', 'atividade_id');
     }
 
+    // Empregado responsável pela atividade
+    public function responsavel(): BelongsTo
+    {
+        return $this->belongsTo(Empregado::class, 'matricula', 'matricula');
+    }
+
     // Get the user that owns the phone.
     public function permissaoAtividade(): BelongsTo
     {

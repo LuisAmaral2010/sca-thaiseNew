@@ -26,6 +26,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PerfilSelecaoController;
 use App\Http\Controllers\SolicitanteController;
 use App\Http\Controllers\DropdownController;
+use App\Http\Controllers\LaboratorioAceitarAmostraController;
+use App\Http\Controllers\LaboratorioEmitirLaudoController;
 
 use App\Models\ArquivoCRA;
 use App\Models\ArquivoLaboratorio;
@@ -99,6 +101,9 @@ Route::prefix('solicitacoes_servicos')->middleware('auth')->group(function(){
     //Route::get('/create2', [SolicitacaoServicoController::class, 'create'])->name('solicitacoes_servicos.create');
     Route::post('/store', [SolicitacaoServicoController::class, 'store'])->name('solicitacoes_servicos.store');
     Route::get('/{solicitacao_servico}/edit', [SolicitacaoServicoController::class, 'edit'])->name('solicitacoes_servicos.edit');
+    Route::post('/{solicitacao_servico}/finalizar', [SolicitacaoServicoController::class, 'finalizar'])->name('solicitacoes_servicos.finalizar');
+    Route::post('/{solicitacao_servico}/enviar-cra', [SolicitacaoServicoController::class, 'enviarCra'])->name('solicitacoes_servicos.enviar_cra');
+    Route::post('/{solicitacao_servico}/cancelar', [SolicitacaoServicoController::class, 'cancelar'])->name('solicitacoes_servicos.cancelar');
 });
 
 // routes/web.php
@@ -302,6 +307,8 @@ Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
     Route::post('/solicitacao/{solicitacao_servico}/receber-todas', [CraReceberAmostraController::class, 'receberTodas'])->name('cra.receber-amostra.receber-todas.store');
     Route::get('/solicitacao/{solicitacao_servico}/rejeitar-todas', [CraReceberAmostraController::class, 'rejeitarTodasForm'])->name('cra.receber-amostra.rejeitar-todas');
     Route::post('/solicitacao/{solicitacao_servico}/rejeitar-todas', [CraReceberAmostraController::class, 'rejeitarTodas'])->name('cra.receber-amostra.rejeitar-todas.store');
+    Route::post('/solicitacao/{solicitacao_servico}/rejeitar-requisicao', [CraReceberAmostraController::class, 'rejeitarRequisicao'])->name('cra.receber-amostra.rejeitar-requisicao');
+    Route::post('/solicitacao/{solicitacao_servico}/enviar-laboratorio', [CraReceberAmostraController::class, 'enviarLaboratorio'])->name('cra.receber-amostra.enviar-laboratorio');
     Route::get('/{ordem_servico}', [CraReceberAmostraController::class, 'show'])->name('cra.receber-amostra.show');
     Route::post('/{ordem_servico}', [CraReceberAmostraController::class, 'store'])->name('cra.receber-amostra.store');
     Route::get('/{ordem_servico}/rejeitar', [CraReceberAmostraController::class, 'rejeitarForm'])->name('cra.receber-amostra.rejeitar');
@@ -311,6 +318,24 @@ Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
 Route::get('/laboratorio', function () {
     return Inertia::render('Laboratorio');
 })->name('laboratorio');
+
+Route::get('/laboratorio/aceitar-amostra', [LaboratorioAceitarAmostraController::class, 'index'])
+    ->name('laboratorio.aceitar-amostra')->middleware('auth');
+
+Route::get('/laboratorio/aceitar-amostra/{ordem_servico}', [LaboratorioAceitarAmostraController::class, 'show'])
+    ->name('laboratorio.aceitar-amostra.show')->middleware('auth');
+
+Route::post('/laboratorio/aceitar-amostra/{ordem_servico}/aceitar', [LaboratorioAceitarAmostraController::class, 'aceitar'])
+    ->name('laboratorio.aceitar-amostra.aceitar')->middleware('auth');
+
+Route::post('/laboratorio/aceitar-amostra/{ordem_servico}/rejeitar', [LaboratorioAceitarAmostraController::class, 'rejeitar'])
+    ->name('laboratorio.aceitar-amostra.rejeitar')->middleware('auth');
+
+Route::get('/laboratorio/emitir-laudo', [LaboratorioEmitirLaudoController::class, 'index'])
+    ->name('laboratorio.emitir-laudo')->middleware('auth');
+
+Route::get('/laboratorio/emitir-laudo/{ordem_servico}/emitir', [LaboratorioEmitirLaudoController::class, 'emitir'])
+    ->name('laboratorio.emitir-laudo.emitir')->middleware('auth');
 
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');

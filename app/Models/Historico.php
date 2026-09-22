@@ -14,6 +14,8 @@ class Historico extends Model
 
     protected $primaryKey= 'historico_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'escopo',
         'escopo_id',

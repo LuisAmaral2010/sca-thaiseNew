@@ -112,6 +112,7 @@ class SolicitacaoServicoController extends Controller
                 'data_solicitacao' => $now,
                 'atividade_id' => $request->input('atividade_id'),
                 'solicitante_matricula' => $matricula,
+                'status' => 'CRIADO',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -161,7 +162,7 @@ class SolicitacaoServicoController extends Controller
 
                 if (!isset($ordemPorUnidade[$unidadeId])) {
                     $ordem = OrdemServico::create([
-                        'status_atual' => 'ENVIADO_CRA',
+                        'status_atual' => 'CRIADO',
                         'data_status_atual' => $now,
                         'observacao' => null,
                         'recebedor_matricula' => null,
@@ -182,28 +183,36 @@ class SolicitacaoServicoController extends Controller
                 $servicoParaOrdem[$servicoId] = $ordemPorUnidade[$unidadeId];
             }
 
-            // 5) CRIA AS FRAÇÕES (FracaoAmostra) e a respectiva ExecucaoAnalise
-            // para cada combinação amostra x serviço selecionado.
+            // 5) CRIA AS FRAÇÕES (FracaoAmostra), uma para cada combinação
+            // amostra x ordem_servico (o produto cartesiano das amostras com
+            // as ordens geradas no passo anterior), e a respectiva
+            // ExecucaoAnalise para cada serviço selecionado dentro daquela
+            // ordem, todas apontando para a mesma fração.
             $fracoesCriadas = [];
 
             foreach ($amostrasCriadas as $amostraModel) {
+                $fracaoPorOrdem = [];
+
                 foreach ($servicos as $servicoId) {
                     $ordemId = $servicoParaOrdem[$servicoId] ?? null;
 
-                    $fracao = FracaoAmostra::create([
-                        'status_atual' => 'ENVIADO_LABORATORIO',
-                        'data_status_atual' => $now,
-                        'observacao' => null,
-                        'amostra_id' => $amostraModel->amostra_id,
-                        'servico_id' => $servicoId,
-                        'ordem_servico_id' => $ordemId,
-                        'responsavel_execucao_matricula' => null,
-                    ]);
+                    if (!isset($fracaoPorOrdem[$ordemId])) {
+                        $fracao = FracaoAmostra::create([
+                            'status_atual' => 'CRIADO',
+                            'data_status_atual' => $now,
+                            'observacao' => null,
+                            'amostra_id' => $amostraModel->amostra_id,
+                            'servico_id' => null,
+                            'ordem_servico_id' => $ordemId,
+                            'responsavel_execucao_matricula' => null,
+                        ]);
 
-                    $fracoesCriadas[] = $fracao;
+                        $fracaoPorOrdem[$ordemId] = $fracao;
+                        $fracoesCriadas[] = $fracao;
+                    }
 
                     ExecucaoAnalise::create([
-                        'fracao_amostra_id' => $fracao->fracao_amostra_id,
+                        'fracao_amostra_id' => $fracaoPorOrdem[$ordemId]->fracao_amostra_id,
                         'laudo_id' => null,
                         'ordem_servico_id' => $ordemId,
                         'servico_id' => $servicoId,
@@ -264,5 +273,140 @@ class SolicitacaoServicoController extends Controller
             return back()->withInput()->withErrors(['erro' => 'Falha ao salvar: ' . $e->getMessage()]);
         }
 
+    }
+
+    // Atribui à solicitação, ainda em rascunho (status CRIADO), o próximo
+    // número de solicitação no formato 00001-yyyy (contador reiniciado a
+    // cada virada de ano), chamado ao clicar em "Finalizar" no formulário
+    // de criação. Idempotente: se a solicitação já tiver um número, mantém.
+    public function finalizar(Request $request, SolicitacaoServico $solicitacao_servico)
+    {
+        if ($solicitacao_servico->status !== 'CRIADO') {
+            $message = 'Esta solicitação não está mais disponível para finalização.';
+
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->withErrors(['erro' => $message]);
+        }
+
+        DB::transaction(function () use ($solicitacao_servico) {
+            if (!empty($solicitacao_servico->numero_solicitacao_servico)) {
+                return;
+            }
+
+            $sufixo = '-' . now()->year;
+
+            $ultimoNumero = SolicitacaoServico::where('numero_solicitacao_servico', 'like', '%' . $sufixo)
+                ->lockForUpdate()
+                ->orderByDesc('numero_solicitacao_servico')
+                ->value('numero_solicitacao_servico');
+
+            $contador = $ultimoNumero ? ((int) substr($ultimoNumero, 0, 5)) + 1 : 1;
+
+            $solicitacao_servico->update([
+                'numero_solicitacao_servico' => str_pad((string) $contador, 5, '0', STR_PAD_LEFT) . $sufixo,
+            ]);
+        });
+
+        $solicitacao_servico->refresh();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'numero_solicitacao_servico' => $solicitacao_servico->numero_solicitacao_servico,
+            ]);
+        }
+
+        return back()->with('success', 'Solicitação finalizada com sucesso!');
+    }
+
+    // Envia para o CRA uma solicitação ainda em rascunho (status CRIADO),
+    // atualizando o status dela, das ordens de serviço e das frações de amostra.
+    public function enviarCra(Request $request, SolicitacaoServico $solicitacao_servico)
+    {
+        if ($solicitacao_servico->status !== 'CRIADO') {
+            $message = 'Esta solicitação não está mais disponível para envio ao CRA.';
+
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->withErrors(['erro' => $message]);
+        }
+
+        $now = now();
+
+        DB::transaction(function () use ($solicitacao_servico, $now) {
+            $solicitacao_servico->update(['status' => 'ENVIADO_CRA']);
+
+            $ordemIds = $solicitacao_servico->ordemServico()->pluck('ordem_servico_id');
+
+            $solicitacao_servico->ordemServico()->update([
+                'status_atual' => 'ENVIADO_CRA',
+                'data_status_atual' => $now,
+            ]);
+
+            FracaoAmostra::whereIn('ordem_servico_id', $ordemIds)->update([
+                'status_atual' => 'ENVIADO_CRA',
+                'data_status_atual' => $now,
+            ]);
+        });
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('solicitacoes_servicos.show', $solicitacao_servico),
+            ]);
+        }
+
+        return redirect()
+            ->route('solicitacoes_servicos.show', $solicitacao_servico)
+            ->with('success', 'Solicitação enviada ao CRA com sucesso!');
+    }
+
+    // Cancela uma solicitação ainda em rascunho (status CRIADO), sem excluir
+    // os registros — apenas marca solicitação, ordens e frações como CANCELADO_PELO_USUARIO.
+    public function cancelar(Request $request, SolicitacaoServico $solicitacao_servico)
+    {
+        if ($solicitacao_servico->status !== 'CRIADO') {
+            $message = 'Esta solicitação não está mais disponível para cancelamento.';
+
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->withErrors(['erro' => $message]);
+        }
+
+        $now = now();
+
+        DB::transaction(function () use ($solicitacao_servico, $now) {
+            $solicitacao_servico->update(['status' => 'CANCELADO_PELO_USUARIO']);
+
+            $ordemIds = $solicitacao_servico->ordemServico()->pluck('ordem_servico_id');
+
+            $solicitacao_servico->ordemServico()->update([
+                'status_atual' => 'CANCELADO_PELO_USUARIO',
+                'data_status_atual' => $now,
+            ]);
+
+            FracaoAmostra::whereIn('ordem_servico_id', $ordemIds)->update([
+                'status_atual' => 'CANCELADO_PELO_USUARIO',
+                'data_status_atual' => $now,
+            ]);
+        });
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('solicitacoes_servicos.index'),
+            ]);
+        }
+
+        return redirect()
+            ->route('solicitacoes_servicos.index')
+            ->with('success', 'Solicitação cancelada.');
     }
 }

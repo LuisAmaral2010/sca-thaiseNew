@@ -16,6 +16,7 @@ class Laudo extends Model
     protected $primaryKey= 'laudo_id';
 
     protected $fillable = [
+        'numero_laudo',
         'data_emissao',
         'data_laudo_cra',
         'data_laudo_lab',

@@ -22,6 +22,7 @@
     </head>
     <body>
         <!-- ======= Header ======= -->
+        @sectionMissing('hide_navbar')
         <header class="sca-navbar">
             <div class="sca-navbar__inner">
                 <a href="{{ route('dashboard.index') }}" class="sca-navbar__brand">
@@ -63,12 +64,72 @@
                 </div>
             </div>
         </header><!-- End Header -->
+        @endif
 
         <main>
-            <div class="container">
-                @yield('content')
-            </div>
+            @hasSection('use_sidebar')
+                <div class="sca-layout">
+                    <aside class="sca-sidebar">
+                        <div class="sca-sidebar__brand">
+                            <span>SCA</span>
+                        </div>
 
+                        <div class="sca-sidebar__group-label">Navegação</div>
+                        <nav class="sca-sidebar__nav">
+                            <a class="sca-sidebar__link {{ request()->is('dashboard*') ? 'is-active' : '' }}" href="{{ route('dashboard.index') }}">
+                                <x-icon name="layout-dashboard" />
+                                <span>Dashboard</span>
+                            </a>
+                            <a class="sca-sidebar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">
+                                <x-icon name="building-2" />
+                                <span>CRA</span>
+                            </a>
+                            <a class="sca-sidebar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">
+                                <x-icon name="flask-conical" />
+                                <span>Laboratório</span>
+                            </a>
+                            <a class="sca-sidebar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec">
+                                <x-icon name="user-cog" />
+                                <span>Resp Tec</span>
+                            </a>
+                            <a class="sca-sidebar__link {{ request()->is('solicitacao*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacao">
+                                <x-icon name="circle-user" />
+                                <span>Solicitante</span>
+                            </a>
+                        </nav>
+
+                        @auth
+                            @php
+                                $sidebarUserInitials = collect(explode(' ', trim(auth()->user()->name ?? '')))
+                                    ->filter()
+                                    ->take(2)
+                                    ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+                                    ->implode('');
+                            @endphp
+                            <div class="sca-sidebar__footer">
+                                <div class="sca-sidebar__user">
+                                    <span class="sca-avatar">{{ $sidebarUserInitials ?: '?' }}</span>
+                                    <span class="sca-sidebar__user-name">{{ auth()->user()->name }}</span>
+                                </div>
+                                <a class="sca-sidebar__link sca-sidebar__link--danger" href="/logout">
+                                    <x-icon name="log-out" />
+                                    <span>Sair</span>
+                                </a>
+                            </div>
+                        @endauth
+                    </aside>
+
+                    <div class="sca-layout__content">
+                        <div class="container">
+                            @yield('content')
+                        </div>
+                    </div>
+                </div>
+            @else
+                <div class="container">
+                    @yield('content')
+                </div>
+            @endif
         </main>
 
         <!-- ======= Footer ======= -->

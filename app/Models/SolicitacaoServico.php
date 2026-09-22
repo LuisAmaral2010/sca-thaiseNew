@@ -15,11 +15,13 @@ class SolicitacaoServico extends Model
 
     protected $primaryKey= 'solicitacao_servico_id';
 
-    protected $fillable = [			
+    protected $fillable = [
+        'numero_solicitacao_servico',
         'descricao',
         'data_solicitacao',
-        'atividade_id',	
+        'atividade_id',
         'solicitante_matricula',
+        'status',
         'created_at',
         'update_at',
     ];
