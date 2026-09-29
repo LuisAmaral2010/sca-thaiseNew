@@ -5,8 +5,8 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const funcionalidades = [
     { titulo: 'Aceitar amostra', icon: ClipboardListIcon, href: route('laboratorio.aceitar-amostra') },
-    { titulo: 'Emitir laudo DOC', icon: FileTextIcon, href: route('laboratorio.emitir-laudo') },
-    { titulo: 'Gravar laudo', icon: SaveIcon },
+    { titulo: 'Criar prévia do laudo', icon: FileTextIcon, href: route('laboratorio.emitir-laudo') },
+    { titulo: 'Gravar laudo', icon: SaveIcon, href: route('laboratorio.gravar-laudo') },
 ];
 
 export default function Laboratorio() {

@@ -28,6 +28,7 @@ use App\Http\Controllers\SolicitanteController;
 use App\Http\Controllers\DropdownController;
 use App\Http\Controllers\LaboratorioAceitarAmostraController;
 use App\Http\Controllers\LaboratorioEmitirLaudoController;
+use App\Http\Controllers\LaboratorioGravarLaudoController;
 
 use App\Models\ArquivoCRA;
 use App\Models\ArquivoLaboratorio;
@@ -336,6 +337,9 @@ Route::get('/laboratorio/emitir-laudo', [LaboratorioEmitirLaudoController::class
 
 Route::get('/laboratorio/emitir-laudo/{ordem_servico}/emitir', [LaboratorioEmitirLaudoController::class, 'emitir'])
     ->name('laboratorio.emitir-laudo.emitir')->middleware('auth');
+
+Route::get('/laboratorio/gravar-laudo', [LaboratorioGravarLaudoController::class, 'index'])
+    ->name('laboratorio.gravar-laudo')->middleware('auth');
 
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');

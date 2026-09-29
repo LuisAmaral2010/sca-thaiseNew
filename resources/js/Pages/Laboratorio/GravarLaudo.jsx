@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { FileTextIcon } from 'lucide-react';
+import { SaveIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -18,25 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-function comRowSpanMaterial(ordens) {
-    return ordens.map((ordem, index) => {
-        const anterior = ordens[index - 1];
-        const mesmoMaterial = anterior && anterior.material === ordem.material;
-
-        if (mesmoMaterial) {
-            return { ...ordem, materialRowSpan: 0 };
-        }
-
-        let rowSpan = 1;
-        while (ordens[index + rowSpan] && ordens[index + rowSpan].material === ordem.material) {
-            rowSpan++;
-        }
-
-        return { ...ordem, materialRowSpan: rowSpan };
-    });
-}
-
-export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
+export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
     const [dataInicial, setDataInicial] = useState(filtros.data_inicial ?? '');
     const [dataFinal, setDataFinal] = useState(filtros.data_final ?? '');
     const [unidadeOperacionalId, setUnidadeOperacionalId] = useState(
@@ -48,11 +30,9 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
         value: String(unidade.unidade_operacional_id),
     }));
 
-    const ordensComRowSpan = comRowSpanMaterial(ordens);
-
     function filtrar(e) {
         e.preventDefault();
-        router.get(route('laboratorio.emitir-laudo'), {
+        router.get(route('laboratorio.gravar-laudo'), {
             data_inicial: dataInicial || undefined,
             data_final: dataFinal || undefined,
             unidade_operacional_id: unidadeOperacionalId || undefined,
@@ -61,10 +41,10 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
 
     return (
         <AppLayout>
-            <Head title="Criar Prévia do Laudo" />
+            <Head title="Gravar Laudo" />
             <Card>
                 <CardHeader>
-                    <CardTitle>Criar Prévia do Laudo</CardTitle>
+                    <CardTitle>Gravar Laudo</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={filtrar} className="flex flex-wrap items-end gap-4">
@@ -96,7 +76,7 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                                 onValueChange={setUnidadeOperacionalId}
                             >
                                 <SelectTrigger id="unidade_operacional_id">
-                                    <SelectValue placeholder="Todas as unidades" />
+                                    <SelectValue placeholder="Selecione a unidade" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -116,16 +96,16 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                         </Button>
                     </form>
 
-                    {ordens.length === 0 ? (
+                    {laudos.length === 0 ? (
                         <Empty className="mt-6">
                             <EmptyHeader>
                                 <EmptyMedia>
-                                    <FileTextIcon />
+                                    <SaveIcon />
                                 </EmptyMedia>
                                 <EmptyTitle>
                                     {unidadeOperacionalId
-                                        ? 'Nenhuma ordem de serviço encontrada'
-                                        : 'Selecione uma unidade operacional para visualizar as ordens de serviço'}
+                                        ? 'Nenhum laudo encontrado'
+                                        : 'Selecione uma unidade operacional para visualizar os laudos'}
                                 </EmptyTitle>
                             </EmptyHeader>
                         </Empty>
@@ -133,51 +113,27 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                         <Table className="mt-6">
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Número do Laudo</TableHead>
                                     <TableHead>Ordem de Serviço</TableHead>
-                                    <TableHead>Material</TableHead>
-                                    <TableHead>Serviço</TableHead>
-                                    <TableHead>Responsável pela Atividade</TableHead>
                                     <TableHead>Unidade Operacional</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Data Aceite Laboratório</TableHead>
-                                    <TableHead>Ação</TableHead>
+                                    <TableHead>Data de Emissão</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {ordensComRowSpan.map((ordem) => (
-                                    <TableRow key={ordem.ordem_servico_id}>
-                                        <TableCell>#{ordem.ordem_servico_id}</TableCell>
-                                        {ordem.materialRowSpan > 0 && (
-                                            <TableCell rowSpan={ordem.materialRowSpan}>
-                                                {ordem.material ?? '—'}
-                                            </TableCell>
-                                        )}
-                                        <TableCell>{ordem.servicos ?? '—'}</TableCell>
-                                        <TableCell>{ordem.responsavel_atividade ?? '—'}</TableCell>
-                                        <TableCell>{ordem.unidade_operacional ?? '—'}</TableCell>
+                                {laudos.map((laudo) => (
+                                    <TableRow key={laudo.laudo_id}>
+                                        <TableCell>{laudo.numero_laudo}</TableCell>
+                                        <TableCell>#{laudo.ordem_servico_id}</TableCell>
+                                        <TableCell>{laudo.unidade_operacional ?? '—'}</TableCell>
                                         <TableCell>
-                                            {ordem.status ? (
-                                                <Badge variant="secondary">{ordem.status}</Badge>
+                                            {laudo.status_atual ? (
+                                                <Badge variant="secondary">{laudo.status_atual}</Badge>
                                             ) : (
                                                 '—'
                                             )}
                                         </TableCell>
-                                        <TableCell>{ordem.data_aceite_laboratorio ?? '—'}</TableCell>
-                                        <TableCell>
-                                            <Button
-                                                size="sm"
-                                                render={
-                                                    <a
-                                                        href={route(
-                                                            'laboratorio.emitir-laudo.emitir',
-                                                            ordem.ordem_servico_id
-                                                        )}
-                                                    />
-                                                }
-                                            >
-                                                Criar prévia do laudo
-                                            </Button>
-                                        </TableCell>
+                                        <TableCell>{laudo.data_emissao ?? '—'}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
