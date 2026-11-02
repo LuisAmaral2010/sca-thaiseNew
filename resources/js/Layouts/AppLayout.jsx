@@ -36,7 +36,7 @@ function useNavItems() {
             title: 'Solicitante',
             href: '/solicitacoes_servicos',
             icon: UserCircle,
-            match: ['/solicitacao', '/solicitante'],
+            match: ['/solicitacao', '/solicitacoes_servicos', '/solicitante'],
             inertia: false,
         },
     ];

@@ -40,7 +40,7 @@
                         <a class="sca-navbar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">CRA</a>
                         <a class="sca-navbar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">Laboratório</a>
                         <a class="sca-navbar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec">Resp Tec</a>
-                        <a class="sca-navbar__link {{ request()->is('solicitacao*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacao">Solicitante</a>
+                        <a class="sca-navbar__link {{ request()->is('solicitacao*') || request()->is('solicitacoes_servicos*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacoes_servicos">Solicitante</a>
                     </nav>
 
                     @auth
@@ -92,7 +92,7 @@
                                 <x-icon name="user-cog" />
                                 <span>Resp Tec</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('solicitacao*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacao">
+                            <a class="sca-sidebar__link {{ request()->is('solicitacao*') || request()->is('solicitacoes_servicos*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacoes_servicos">
                                 <x-icon name="circle-user" />
                                 <span>Solicitante</span>
                             </a>
