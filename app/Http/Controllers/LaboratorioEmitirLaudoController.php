@@ -13,6 +13,8 @@ use PhpOffice\PhpWord\TemplateProcessor;
 
 class LaboratorioEmitirLaudoController extends Controller
 {
+    private const STATUS_PREVIA_CRIADA = 'PRÉVIA DO LAUDO CRIADA';
+
     // Unidades operacionais em que o usuário logado tem permissão de
     // laboratório (permissao_unidade_operacional.usuario_matricula)
     private function unidadesOperacionaisPermitidas(): array
@@ -174,7 +176,8 @@ class LaboratorioEmitirLaudoController extends Controller
     // reemitir o DOC não gera outro número), ou cria um novo com o próximo
     // número no formato RYY0009 (R + ano de 2 dígitos + contador de 4
     // dígitos, reiniciado a cada virada de ano). O bloqueio pessimista evita
-    // que duas emissões simultâneas gerem o mesmo número.
+    // que duas emissões simultâneas gerem o mesmo número. Em seguida marca o
+    // laudo e a ordem de serviço com o status "PRÉVIA DO LAUDO CRIADA".
     private function obterOuCriarLaudo(OrdemServico $ordem_servico): Laudo
     {
         return DB::transaction(function () use ($ordem_servico) {
@@ -182,34 +185,39 @@ class LaboratorioEmitirLaudoController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            if ($laudo && !empty($laudo->numero_laudo)) {
-                return $laudo;
+            if (!$laudo || empty($laudo->numero_laudo)) {
+                $prefixo = 'R' . now()->format('y');
+
+                $ultimoNumero = Laudo::where('numero_laudo', 'like', $prefixo . '%')
+                    ->lockForUpdate()
+                    ->orderByDesc('numero_laudo')
+                    ->value('numero_laudo');
+
+                $contador = $ultimoNumero ? ((int) substr($ultimoNumero, 3)) + 1 : 1;
+
+                $numeroLaudo = $prefixo . str_pad((string) $contador, 4, '0', STR_PAD_LEFT);
+
+                if ($laudo) {
+                    $laudo->update(['numero_laudo' => $numeroLaudo]);
+                } else {
+                    $laudo = Laudo::create([
+                        'numero_laudo' => $numeroLaudo,
+                        'data_emissao' => now(),
+                        'status_atual' => self::STATUS_PREVIA_CRIADA,
+                        'ordem_servico_id' => $ordem_servico->ordem_servico_id,
+                        'avaliador_matricula' => auth()->user()?->empregado?->matricula,
+                    ]);
+                }
             }
 
-            $prefixo = 'R' . now()->format('y');
+            $laudo->update(['status_atual' => self::STATUS_PREVIA_CRIADA]);
 
-            $ultimoNumero = Laudo::where('numero_laudo', 'like', $prefixo . '%')
-                ->lockForUpdate()
-                ->orderByDesc('numero_laudo')
-                ->value('numero_laudo');
-
-            $contador = $ultimoNumero ? ((int) substr($ultimoNumero, 3)) + 1 : 1;
-
-            $numeroLaudo = $prefixo . str_pad((string) $contador, 4, '0', STR_PAD_LEFT);
-
-            if ($laudo) {
-                $laudo->update(['numero_laudo' => $numeroLaudo]);
-
-                return $laudo;
-            }
-
-            return Laudo::create([
-                'numero_laudo' => $numeroLaudo,
-                'data_emissao' => now(),
-                'status_atual' => 'EMITIDO',
-                'ordem_servico_id' => $ordem_servico->ordem_servico_id,
-                'avaliador_matricula' => auth()->user()?->empregado?->matricula,
+            $ordem_servico->update([
+                'status_atual' => self::STATUS_PREVIA_CRIADA,
+                'data_status_atual' => now(),
             ]);
+
+            return $laudo;
         });
     }
 }

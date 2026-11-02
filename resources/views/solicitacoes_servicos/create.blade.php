@@ -74,7 +74,12 @@
                 Adicionar Amostra
             </button>
         </div>
-        <div class="sca-panel__body">
+        @php
+            $oldAmostras = old('amostras', []);
+        @endphp
+
+        {{-- Corpo do painel fica oculto enquanto não houver amostras --}}
+        <div class="sca-panel__body" id="corpoAmostras" @if(empty($oldAmostras)) hidden @endif>
             <table class="sca-table" id="tabelaAmostras">
                 <thead>
                     <tr>
@@ -85,10 +90,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $oldAmostras = old('amostras', []);
-                    @endphp
-
                     @foreach($oldAmostras as $i => $amostra)
                         <tr>
                             <td>
@@ -118,13 +119,6 @@
                 Você pode adicionar várias amostras. Linhas totalmente vazias serão ignoradas no salvamento.
             </p>
         </div>
-    </div>
-
-    <div class="mt-3">
-        {{-- Botão para abrir modal de serviços --}}
-        <button type="button" class="sca-btn sca-btn--outline" data-bs-toggle="modal" data-bs-target="#modalServicos">
-            Selecionar Serviços
-        </button>
     </div>
 
     {{-- MODAL SERVIÇOS --}}
@@ -171,9 +165,15 @@
         </div>
     </div>
 
-    {{-- Serviços selecionados --}}
-    <div class="sca-panel">
-        <div class="sca-panel__header">Serviços Selecionados</div>
+    {{-- Serviços selecionados (só aparece quando houver amostras) --}}
+    <div class="sca-panel" id="painelServicosSelecionados" @if(empty($oldAmostras)) hidden @endif>
+        <div class="sca-panel__header">
+            Serviços Selecionados
+            {{-- Botão para abrir modal de serviços --}}
+            <button type="button" class="sca-btn sca-btn--secondary sca-btn--sm" data-bs-toggle="modal" data-bs-target="#modalServicos">
+                Selecionar Serviços
+            </button>
+        </div>
         <div class="sca-panel__body">
             <ul id="listaServicosSelecionados" class="mb-0">
                 {{-- preenchido via JS --}}
@@ -185,7 +185,8 @@
     <div id="servicosSelecionadosInputs"></div>
 
     {{-- RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS --}}
-    <div class="sca-panel" id="painelResumo">
+    {{-- Só aparece quando houver amostras e serviços selecionados (controlado via JS) --}}
+    <div class="sca-panel" id="painelResumo" hidden>
         <div class="sca-panel__header">
             Relação de Amostras x Unidades Operacionais / Serviços
         </div>
@@ -236,7 +237,7 @@
                 <h5 class="modal-title" id="modalResumoLabel">
                     RESUMO: AMOSTRAS x UNIDADES OPERACIONAIS / SERVIÇOS
                 </h5>
-                <button type="button" class="sca-btn sca-btn--ghost sca-btn--icon" data-bs-dismiss="modal" aria-label="Fechar">&times;</button>
+                <button type="button" class="sca-btn sca-btn--ghost sca-btn--icon" data-bs-dismiss="modal" data-bs-backdrop="static" data-bs-keyboard="false" aria-label="Fechar">&times;</button>
             </div>
 
             <div class="modal-body">
@@ -261,10 +262,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const btnAdd = document.getElementById('btnAddAmostra');
-    const tbody  = document.querySelector('#tabelaAmostras tbody');
+    const corpo = document.getElementById('corpoAmostras');
+    const painelServicos = document.getElementById('painelServicosSelecionados');
+    const tbody = document.querySelector('#tabelaAmostras tbody');
+
+    // Painel de serviços só aparece quando alguma amostra tiver algum campo preenchido
+    function atualizarPainelServicos() {
+        const temInformacao = Array.from(tbody.querySelectorAll('input'))
+            .some(input => input.value.trim() !== '');
+        painelServicos.hidden = !temInformacao;
+    }
 
     function reindexarLinhas() {
         const linhas = tbody.querySelectorAll('tr');
+        corpo.hidden = linhas.length === 0;
+        atualizarPainelServicos();
         linhas.forEach((tr, index) => {
             tr.querySelectorAll('input').forEach(input => {
                 const name = input.getAttribute('name') || '';
@@ -314,10 +326,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Se não houver old('amostras'), adiciona ao menos 1 linha
-    if (tbody.children.length === 0) {
-        adicionarLinha();
-    }
+    tbody.addEventListener('input', atualizarPainelServicos);
+
+    atualizarPainelServicos();
 });
 
 
@@ -332,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const listaServicosSelecionados = document.getElementById('listaServicosSelecionados');
     const resumoBody = document.getElementById('resumoAmostrasServicosBody');
     const tabelaAmostras = document.getElementById('tabelaAmostras');
+    const painelResumo = document.getElementById('painelResumo');
 
     // Guardar serviços já selecionados (ids)
     let servicosSelecionados = new Set();
@@ -502,6 +514,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const amostras = coletarAmostras();
         const servicosPorUnidade = agruparServicosPorUnidade();
 
+        // Painel só aparece quando há amostras e serviços selecionados
+        if (painelResumo) {
+            painelResumo.hidden = amostras.length === 0 || Object.keys(servicosPorUnidade).length === 0;
+        }
+
         resumoBody.innerHTML = '';
 
         if (amostras.length === 0) {
@@ -592,6 +609,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (tabelaAmostras) {
         tabelaAmostras.addEventListener('input', atualizarResumoRelacao);
         tabelaAmostras.addEventListener('change', atualizarResumoRelacao);
+        // Remoção de linha não dispara input/change; o tbody remove a linha antes deste listener
+        tabelaAmostras.addEventListener('click', function (e) {
+            if (e.target.classList.contains('btn-remove-linha')) {
+                atualizarResumoRelacao();
+            }
+        });
     }
 
     // Chamada inicial

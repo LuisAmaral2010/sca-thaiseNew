@@ -134,18 +134,24 @@ class CraReceberAmostraController extends Controller
             'observacao' => ['nullable', 'string', 'max:255'],
         ]);
 
-        foreach ($this->todasOrdensDaSolicitacao($solicitacao_servico) as $ordem) {
-            $ordem->update([
-                'data_status_atual' => $validated['data_recebimento'],
-                'observacao' => $validated['observacao'] ?? $ordem->observacao,
-                'recebedor_matricula' => auth()->user()?->empregado?->matricula,
-            ]);
+        $ordens = $this->todasOrdensDaSolicitacao($solicitacao_servico);
 
-            FracaoAmostra::where('ordem_servico_id', $ordem->ordem_servico_id)
-                ->update(['status_atual' => 'ACEITO_CRA']);
+        DB::transaction(function () use ($ordens, $validated, $solicitacao_servico) {
+            foreach ($ordens as $ordem) {
+                $ordem->update([
+                    'data_status_atual' => $validated['data_recebimento'],
+                    'observacao' => $validated['observacao'] ?? $ordem->observacao,
+                    'recebedor_matricula' => auth()->user()?->empregado?->matricula,
+                ]);
 
-            $this->sincronizarStatusOrdem($ordem);
-        }
+                FracaoAmostra::where('ordem_servico_id', $ordem->ordem_servico_id)
+                    ->update(['status_atual' => 'ACEITO_CRA']);
+
+                $this->sincronizarStatusOrdem($ordem);
+            }
+
+            $this->atribuirNumerosCra($solicitacao_servico);
+        });
 
         return redirect()
             ->route('cra.receber-amostra.ordens', $solicitacao_servico->solicitacao_servico_id)
@@ -214,6 +220,11 @@ class CraReceberAmostraController extends Controller
 
             $solicitacao_servico->ordemServico()->update(['status_atual' => 'ENVIADO_LABORATORIO']);
 
+            // A atualização em massa não altera data_status_atual, então o
+            // histórico registra o momento do envio
+            $solicitacao_servico->ordemServico()->get()
+                ->each(fn (OrdemServico $ordem) => $ordem->registrarHistorico(now()));
+
             FracaoAmostra::whereIn('ordem_servico_id', $solicitacao_servico->ordemServico()->pluck('ordem_servico_id'))
                 ->where('status_atual', 'ACEITO_CRA')
                 ->update(['status_atual' => 'ENVIADO_LABORATORIO']);
@@ -229,10 +240,12 @@ class CraReceberAmostraController extends Controller
     // Atribui a cada amostra da solicitação, que ainda não tenha um número de
     // CRA, o próximo número no formato 99999-yyyy (contador reiniciado a
     // cada virada de ano). O bloqueio pessimista evita que dois envios
-    // simultâneos gerem o mesmo número.
-    private function atribuirNumerosCra(SolicitacaoServico $solicitacao_servico): void
+    // simultâneos gerem o mesmo número. Quando $amostraIds é informado, só
+    // essas amostras da solicitação são numeradas.
+    private function atribuirNumerosCra(SolicitacaoServico $solicitacao_servico, $amostraIds = null): void
     {
         $amostras = Amostra::where('solicitacao_id', $solicitacao_servico->solicitacao_servico_id)
+            ->when($amostraIds !== null, fn ($query) => $query->whereIn('amostra_id', $amostraIds))
             ->where(function ($query) {
                 $query->whereNull('numero_cra')
                     ->orWhere('numero_cra', '')
@@ -295,6 +308,11 @@ class CraReceberAmostraController extends Controller
 
         if ($status !== null) {
             $ordem_servico->update(['status_atual' => $status]);
+
+            // Só registra no histórico quando o status de fato mudou
+            if ($ordem_servico->wasChanged('status_atual')) {
+                $ordem_servico->registrarHistorico();
+            }
         }
     }
 
@@ -322,13 +340,25 @@ class CraReceberAmostraController extends Controller
             'fracao_amostra_id' => ['nullable', 'integer'],
         ]);
 
-        $ordem_servico->update([
-            'data_status_atual' => $validated['data_recebimento'],
-            'observacao' => $validated['observacao'] ?? $ordem_servico->observacao,
-            'recebedor_matricula' => auth()->user()?->empregado?->matricula,
-        ]);
+        $fracaoAmostraId = $validated['fracao_amostra_id'] ?? null;
 
-        $this->atualizarFracoes($ordem_servico, $validated['fracao_amostra_id'] ?? null, 'ACEITO_CRA');
+        DB::transaction(function () use ($ordem_servico, $validated, $fracaoAmostraId) {
+            $ordem_servico->update([
+                'data_status_atual' => $validated['data_recebimento'],
+                'observacao' => $validated['observacao'] ?? $ordem_servico->observacao,
+                'recebedor_matricula' => auth()->user()?->empregado?->matricula,
+            ]);
+
+            $this->atualizarFracoes($ordem_servico, $fracaoAmostraId, 'ACEITO_CRA');
+
+            // Numera só a(s) amostra(s) recebida(s): a da fração informada ou,
+            // sem fração, as de todas as frações da ordem
+            $amostraIds = FracaoAmostra::where('ordem_servico_id', $ordem_servico->ordem_servico_id)
+                ->when($fracaoAmostraId, fn ($query) => $query->where('fracao_amostra_id', $fracaoAmostraId))
+                ->pluck('amostra_id');
+
+            $this->atribuirNumerosCra($ordem_servico->solicitacaoServico, $amostraIds);
+        });
 
         return redirect()
             ->route('cra.receber-amostra.ordens', $ordem_servico->solicitacao_servico_id)

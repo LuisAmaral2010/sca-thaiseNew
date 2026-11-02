@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { SaveIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -37,6 +38,53 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
             data_final: dataFinal || undefined,
             unidade_operacional_id: unidadeOperacionalId || undefined,
         });
+    }
+
+    const { flash, errors } = usePage().props;
+    const [gravandoLaudoId, setGravandoLaudoId] = useState(null);
+
+    // Abre a caixa de diálogo "Abrir" iniciando na pasta Documentos e
+    // exibindo apenas arquivos PDF. A File System Access API (Chrome/Edge)
+    // permite definir a pasta inicial; nos demais navegadores usa-se um
+    // <input type="file">, que abre na última pasta usada pelo sistema.
+    async function selecionarPdf(laudo) {
+        let arquivo;
+
+        if (window.showOpenFilePicker) {
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    startIn: 'documents',
+                    multiple: false,
+                    excludeAcceptAllOption: true,
+                    types: [{ description: 'Arquivos PDF', accept: { 'application/pdf': ['.pdf'] } }],
+                });
+                arquivo = await handle.getFile();
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                throw error;
+            }
+        } else {
+            arquivo = await new Promise((resolve) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'application/pdf,.pdf';
+                input.onchange = () => resolve(input.files[0]);
+                input.click();
+            });
+        }
+
+        if (!arquivo) return;
+
+        router.post(
+            route('laboratorio.gravar-laudo.gravar', laudo.laudo_id),
+            { arquivo },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onStart: () => setGravandoLaudoId(laudo.laudo_id),
+                onFinish: () => setGravandoLaudoId(null),
+            }
+        );
     }
 
     return (
@@ -96,6 +144,17 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                         </Button>
                     </form>
 
+                    {flash?.success && (
+                        <Alert className="mt-6">
+                            <AlertDescription>{flash.success}</AlertDescription>
+                        </Alert>
+                    )}
+                    {errors.arquivo && (
+                        <Alert variant="destructive" className="mt-6">
+                            <AlertDescription>{errors.arquivo}</AlertDescription>
+                        </Alert>
+                    )}
+
                     {laudos.length === 0 ? (
                         <Empty className="mt-6">
                             <EmptyHeader>
@@ -118,6 +177,7 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                                     <TableHead>Unidade Operacional</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead>Data de Emissão</TableHead>
+                                    <TableHead className="text-center">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -134,6 +194,21 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                                             )}
                                         </TableCell>
                                         <TableCell>{laudo.data_emissao ?? '—'}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                disabled={gravandoLaudoId !== null}
+                                                onClick={() => selecionarPdf(laudo)}
+                                            >
+                                                {gravandoLaudoId === laudo.laudo_id ? 'Gravando...' : 'Gravar Laudo PDF'}
+                                            </Button>
+                                            {laudo.arquivo_nome && (
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    {laudo.arquivo_nome}
+                                                </div>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

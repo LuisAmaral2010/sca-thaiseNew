@@ -2,8 +2,6 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     LayoutDashboard,
     FlaskConical,
-    FileText,
-    ClipboardList,
     LogOut,
     Building2,
     UserCog,
@@ -26,27 +24,21 @@ import {
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 function useNavItems() {
     return [
-        { title: 'Dashboard', href: route('dashboard.index'), icon: LayoutDashboard },
-        { title: 'CRA', href: route('cra'), icon: Building2 },
-        { title: 'Laboratório', href: route('laboratorio'), icon: FlaskConical },
-        { title: 'Resp Tec', href: route('resptec'), icon: UserCog },
-        { title: 'Solicitante', href: route('solicitante.index'), icon: UserCircle },
-        { title: 'Amostras', href: route('amostras.index'), icon: FlaskConical },
-        { title: 'Laudos', href: route('laudos.index'), icon: FileText },
-        { title: 'Ordens de Serviço', href: route('ordens_servicos.index'), icon: ClipboardList },
+        { title: 'Dashboard', href: route('dashboard.index'), icon: LayoutDashboard, match: ['/dashboard'] },
+        { title: 'CRA', href: route('cra'), icon: Building2, match: ['/cra'] },
+        { title: 'Laboratório', href: route('laboratorio'), icon: FlaskConical, match: ['/laboratorio'] },
+        { title: 'Resp Tec', href: route('resptec'), icon: UserCog, match: ['/resptec'] },
+        {
+            title: 'Solicitante',
+            href: '/solicitacoes_servicos',
+            icon: UserCircle,
+            match: ['/solicitacao', '/solicitante'],
+            inertia: false,
+        },
     ];
 }
 
@@ -86,8 +78,14 @@ export default function AppLayout({ children }) {
                                         <SidebarMenuItem key={item.href}>
                                             <SidebarMenuButton
                                                 tooltip={item.title}
-                                                isActive={currentPath.startsWith(new URL(item.href).pathname)}
-                                                render={<Link href={item.href} />}
+                                                isActive={item.match.some((prefix) => currentPath.startsWith(prefix))}
+                                                render={
+                                                    item.inertia === false ? (
+                                                        <a href={item.href} />
+                                                    ) : (
+                                                        <Link href={item.href} />
+                                                    )
+                                                }
                                             >
                                                 <item.icon />
                                                 <span>{item.title}</span>
@@ -101,32 +99,24 @@ export default function AppLayout({ children }) {
                     <SidebarFooter>
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger
-                                        render={
-                                            <SidebarMenuButton size="lg">
-                                                <Avatar className="size-6 rounded-md">
-                                                    <AvatarFallback className="rounded-md">
-                                                        {userInitials(user?.name)}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="truncate">{user?.name}</span>
-                                            </SidebarMenuButton>
-                                        }
-                                    />
-                                    <DropdownMenuContent side="top" align="start" className="w-56">
-                                        <DropdownMenuLabel className="truncate">
-                                            {user?.email}
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuGroup>
-                                            <DropdownMenuItem render={<Link href="/logout" />}>
-                                                <LogOut data-icon="inline-start" />
-                                                Sair
-                                            </DropdownMenuItem>
-                                        </DropdownMenuGroup>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <SidebarMenuButton size="lg" tooltip={user?.name}>
+                                    <Avatar className="size-6 rounded-md">
+                                        <AvatarFallback className="rounded-md">
+                                            {userInitials(user?.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="truncate">{user?.name}</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    tooltip="Sair"
+                                    className="text-destructive hover:text-destructive"
+                                    render={<Link href="/logout" />}
+                                >
+                                    <LogOut />
+                                    <span>Sair</span>
+                                </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
                     </SidebarFooter>

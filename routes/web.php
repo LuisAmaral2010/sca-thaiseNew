@@ -341,6 +341,9 @@ Route::get('/laboratorio/emitir-laudo/{ordem_servico}/emitir', [LaboratorioEmiti
 Route::get('/laboratorio/gravar-laudo', [LaboratorioGravarLaudoController::class, 'index'])
     ->name('laboratorio.gravar-laudo')->middleware('auth');
 
+Route::post('/laboratorio/gravar-laudo/{laudo}', [LaboratorioGravarLaudoController::class, 'gravar'])
+    ->name('laboratorio.gravar-laudo.gravar')->middleware('auth');
+
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');
 })->name('resptec');

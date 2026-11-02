@@ -135,9 +135,10 @@ class LaboratorioAceitarAmostraController extends Controller
         ]);
     }
 
-    // Aceita a amostra: a solicitação de serviço, todas as suas ordens de
-    // serviço e todas as frações dessas ordens são marcadas como recebidas
-    // pelo laboratório, com o respectivo registro de histórico para cada uma.
+    // Aceita a amostra: a solicitação de serviço, a ordem de serviço da
+    // unidade operacional que aceitou e as frações dessa ordem são marcadas
+    // como recebidas pelo laboratório, com o respectivo registro de
+    // histórico para cada uma.
     public function aceitar(OrdemServico $ordem_servico)
     {
         abort_unless(in_array($ordem_servico->unidade_operacional_id, $this->unidadesOperacionaisPermitidas()), 403);
@@ -168,32 +169,34 @@ class LaboratorioAceitarAmostraController extends Controller
                 'usuario_matricula' => $matricula,
             ]);
 
-            foreach ($solicitacao->ordemServico as $ordem) {
-                $ordem->update([
-                    'status_atual' => self::STATUS_RECEBIDO_LABORATORIO,
-                    'data_status_atual' => $now,
-                    'data_aceite_laboratorio' => $now,
-                ]);
+            // Só a ordem da unidade operacional que aceitou (e suas frações)
+            // muda de status; as ordens de outros laboratórios não são afetadas
+            $ordem_servico->update([
+                'status_atual' => self::STATUS_RECEBIDO_LABORATORIO,
+                'data_status_atual' => $now,
+                'data_aceite_laboratorio' => $now,
+            ]);
+
+            $ordem_servico->registrarHistorico();
+
+            Historico::create([
+                'escopo' => 'ordem_servico',
+                'escopo_id' => $ordem_servico->ordem_servico_id,
+                'status' => self::STATUS_RECEBIDO_LABORATORIO,
+                'data' => $now,
+                'usuario_matricula' => $matricula,
+            ]);
+
+            foreach ($ordem_servico->fracoesAmostra as $fracao) {
+                $fracao->update(['status_atual' => self::STATUS_RECEBIDO_LABORATORIO]);
 
                 Historico::create([
-                    'escopo' => 'ordem_servico',
-                    'escopo_id' => $ordem->ordem_servico_id,
+                    'escopo' => 'fracao_amostra',
+                    'escopo_id' => $fracao->fracao_amostra_id,
                     'status' => self::STATUS_RECEBIDO_LABORATORIO,
                     'data' => $now,
                     'usuario_matricula' => $matricula,
                 ]);
-
-                foreach ($ordem->fracoesAmostra as $fracao) {
-                    $fracao->update(['status_atual' => self::STATUS_RECEBIDO_LABORATORIO]);
-
-                    Historico::create([
-                        'escopo' => 'fracao_amostra',
-                        'escopo_id' => $fracao->fracao_amostra_id,
-                        'status' => self::STATUS_RECEBIDO_LABORATORIO,
-                        'data' => $now,
-                        'usuario_matricula' => $matricula,
-                    ]);
-                }
             }
         });
 
@@ -202,9 +205,10 @@ class LaboratorioAceitarAmostraController extends Controller
             ->with('success', 'Amostra aceita com sucesso!');
     }
 
-    // Rejeita a amostra: a solicitação de serviço, todas as suas ordens de
-    // serviço e todas as frações dessas ordens são marcadas como rejeitadas
-    // pelo laboratório, com o respectivo registro de histórico para cada uma.
+    // Rejeita a amostra: a solicitação de serviço, a ordem de serviço da
+    // unidade operacional que rejeitou e as frações dessa ordem são marcadas
+    // como rejeitadas pelo laboratório, com o respectivo registro de
+    // histórico para cada uma.
     public function rejeitar(Request $request, OrdemServico $ordem_servico)
     {
         abort_unless(in_array($ordem_servico->unidade_operacional_id, $this->unidadesOperacionaisPermitidas()), 403);
@@ -239,33 +243,35 @@ class LaboratorioAceitarAmostraController extends Controller
                 'usuario_matricula' => $matricula,
             ]);
 
-            foreach ($solicitacao->ordemServico as $ordem) {
-                $ordem->update([
-                    'status_atual' => self::STATUS_REJEITADO_LABORATORIO,
-                    'data_status_atual' => $now,
-                    'data_aceite_laboratorio' => $now,
-                    'observacao' => $validated['motivo'],
-                ]);
+            // Só a ordem da unidade operacional que rejeitou (e suas frações)
+            // muda de status; as ordens de outros laboratórios não são afetadas
+            $ordem_servico->update([
+                'status_atual' => self::STATUS_REJEITADO_LABORATORIO,
+                'data_status_atual' => $now,
+                'data_aceite_laboratorio' => $now,
+                'observacao' => $validated['motivo'],
+            ]);
+
+            $ordem_servico->registrarHistorico();
+
+            Historico::create([
+                'escopo' => 'ordem_servico',
+                'escopo_id' => $ordem_servico->ordem_servico_id,
+                'status' => self::STATUS_REJEITADO_LABORATORIO,
+                'data' => $now,
+                'usuario_matricula' => $matricula,
+            ]);
+
+            foreach ($ordem_servico->fracoesAmostra as $fracao) {
+                $fracao->update(['status_atual' => self::STATUS_REJEITADO_LABORATORIO]);
 
                 Historico::create([
-                    'escopo' => 'ordem_servico',
-                    'escopo_id' => $ordem->ordem_servico_id,
+                    'escopo' => 'fracao_amostra',
+                    'escopo_id' => $fracao->fracao_amostra_id,
                     'status' => self::STATUS_REJEITADO_LABORATORIO,
                     'data' => $now,
                     'usuario_matricula' => $matricula,
                 ]);
-
-                foreach ($ordem->fracoesAmostra as $fracao) {
-                    $fracao->update(['status_atual' => self::STATUS_REJEITADO_LABORATORIO]);
-
-                    Historico::create([
-                        'escopo' => 'fracao_amostra',
-                        'escopo_id' => $fracao->fracao_amostra_id,
-                        'status' => self::STATUS_REJEITADO_LABORATORIO,
-                        'data' => $now,
-                        'usuario_matricula' => $matricula,
-                    ]);
-                }
             }
         });
 

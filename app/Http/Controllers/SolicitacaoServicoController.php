@@ -42,6 +42,8 @@ class SolicitacaoServicoController extends Controller
     // Visualizar a solicitacao_servico
     public function show(SolicitacaoServico $solicitacao_servico)
     {
+        $solicitacao_servico->load(['ordemServico.recebedor', 'ordemServico.unidadeOperacional']);
+
         // Carregar a view
         return view('solicitacoes_servicos.show', ['solicitacao' => $solicitacao_servico]);
     }
@@ -171,6 +173,8 @@ class SolicitacaoServicoController extends Controller
                     ]);
 
                     $ordemPorUnidade[$unidadeId] = $ordem->ordem_servico_id;
+
+                    $ordem->registrarHistorico();
 
                     $ordensCriadas[] = [
                         'ordem_servico_id' => $ordem->ordem_servico_id,
@@ -348,6 +352,9 @@ class SolicitacaoServicoController extends Controller
                 'data_status_atual' => $now,
             ]);
 
+            $solicitacao_servico->ordemServico()->get()
+                ->each(fn (OrdemServico $ordem) => $ordem->registrarHistorico());
+
             FracaoAmostra::whereIn('ordem_servico_id', $ordemIds)->update([
                 'status_atual' => 'ENVIADO_CRA',
                 'data_status_atual' => $now,
@@ -391,6 +398,9 @@ class SolicitacaoServicoController extends Controller
                 'status_atual' => 'CANCELADO_PELO_USUARIO',
                 'data_status_atual' => $now,
             ]);
+
+            $solicitacao_servico->ordemServico()->get()
+                ->each(fn (OrdemServico $ordem) => $ordem->registrarHistorico());
 
             FracaoAmostra::whereIn('ordem_servico_id', $ordemIds)->update([
                 'status_atual' => 'CANCELADO_PELO_USUARIO',

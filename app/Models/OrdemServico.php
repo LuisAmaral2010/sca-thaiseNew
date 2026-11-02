@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 class OrdemServico extends Model
 {
     use HasFactory;
@@ -60,13 +61,39 @@ class OrdemServico extends Model
     // Get the Empregado associated with the Solicitação de Serviço.
     public function unidadeOperacional(): HasOne
     {
-        return $this->hasOne(unidadeOperacional::class, 'unidade_operacional_id','unidade_operacional_id');
+        return $this->hasOne(UnidadeOperacional::class, 'unidade_operacional_id','unidade_operacional_id');
     }
 
     // Get the Empregado associated with the Solicitação de Serviço.
     public function empregado(): HasOne
     {
         return $this->hasOne(Empregado::class, 'matricula','solicitante_matricula');
+    }
+
+    // Empregado que recebeu as amostras no CRA
+    public function recebedor(): BelongsTo
+    {
+        return $this->belongsTo(Empregado::class, 'recebedor_matricula', 'matricula');
+    }
+
+    // Registra o status atual da ordem em ordem_servico_historico. A chave
+    // primária da tabela não é auto-incremento, então o próximo id é obtido
+    // com bloqueio pessimista dentro de uma transação (aninhada, quando já
+    // houver uma em curso).
+    public function registrarHistorico($dataStatus = null): void
+    {
+        DB::transaction(function () use ($dataStatus) {
+            $proximoId = (int) DB::table('ordem_servico_historico')
+                ->lockForUpdate()
+                ->max('ordem_servico_historico_id') + 1;
+
+            DB::table('ordem_servico_historico')->insert([
+                'ordem_servico_historico_id' => $proximoId,
+                'ordem_servico_id' => $this->ordem_servico_id,
+                'status_atual' => $this->status_atual,
+                'data_status_atual' => $dataStatus ?? $this->data_status_atual ?? now(),
+            ]);
+        });
     }
 
     public function perfilAcesso(): BelongsTo

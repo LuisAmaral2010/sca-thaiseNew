@@ -3,6 +3,9 @@
 
 @section('title', 'Solicitação de Serviço #' . $solicitacao->solicitacao_servico_id)
 
+@section('hide_navbar', '1')
+@section('use_sidebar', '1')
+
 @section('content')
 <div class="sca-page-header">
     <div>
@@ -39,9 +42,9 @@
 {{-- Mesmo layout visual do modal #modalResumo (create.blade.php), como página normal --}}
 <div class="modal-content">
     <div class="modal-header">
-        <h5 class="modal-title">
-            Solicitação de Serviço #{{ $solicitacao->solicitacao_servico_id }}
-        </h5>
+        <!-- <h5 class="modal-title">
+            Solicitação de Serviço #{{-- $solicitacao->solicitacao_servico_id --}}
+        </h5> -->
     </div>
 
     <div class="modal-body">
@@ -102,8 +105,14 @@
                                 <td>{{ $ordem->ordem_servico_id }}</td>
                                 <td>{{ $ordem->status_atual }}</td>
                                 <td>{{ \Carbon\Carbon::parse($ordem->data_status_atual)->format('d/m/Y') }}</td>
-                                <td>{{ $ordem->recebedor_matricula ?? '-' }}</td>
-                                <td>{{ $ordem->unidade_operacional_id->nome ?? '-' }}</td>
+                                <td>
+                                    @if($ordem->recebedor_matricula)
+                                        {{ $ordem->recebedor?->nome ?? '-' }} ({{ $ordem->recebedor_matricula }})
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>{{ $ordem->unidadeOperacional?->nome ?? '-' }}</td>
                                 <td>{{ Str::limit($ordem->observacao, 80) }}</td>
                                 <td>
                                     <a href="{{-- route('ordens.show', $ordem->ordem_servico_id) --}}" class="sca-link">Ver</a>
@@ -118,7 +127,7 @@
             @endif
         </div>
     </div>
-
+<BR>
     <div class="modal-footer">
         <a href="{{ url()->previous() }}" class="sca-btn sca-btn--outline">Voltar</a>
     </div>

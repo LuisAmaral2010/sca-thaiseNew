@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ArquivoLaboratorio;
+use App\Models\FracaoAmostra;
 use App\Models\Laudo;
+use App\Models\OrdemServico;
 use App\Models\PermissaoUnidadeOperacional;
 use App\Models\UnidadeOperacional;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class LaboratorioGravarLaudoController extends Controller
 {
+    private const STATUS_ENVIADO_RESPTEC = 'LAUDO ENVIADO PARA RESPTEC';
+
     // Unidades operacionais em que o usuário logado tem permissão de
     // laboratório (permissao_unidade_operacional.usuario_matricula)
     private function unidadesOperacionaisPermitidas(): array
@@ -65,10 +72,64 @@ class LaboratorioGravarLaudoController extends Controller
                 ])
             : collect();
 
+        // Nome do PDF já gravado para cada laudo, se houver
+        $arquivos = ArquivoLaboratorio::whereIn('laudo_id', $laudos->pluck('laudo_id'))
+            ->pluck('nome', 'laudo_id');
+
+        $laudos->each(fn ($laudo) => $laudo->arquivo_nome = $arquivos[$laudo->laudo_id] ?? null);
+
         return Inertia::render('Laboratorio/GravarLaudo', [
             'unidadesOperacionais' => $unidadesOperacionais,
             'filtros' => $request->only(['data_inicial', 'data_final', 'unidade_operacional_id']),
             'laudos' => $laudos,
         ]);
+    }
+
+    // Grava o PDF escolhido pelo usuário na tabela arquivo_laboratorio,
+    // substituindo o arquivo anterior do laudo, se existir, e marca o laudo,
+    // a ordem de serviço e suas frações com "LAUDO ENVIADO PARA RESPTEC"
+    public function gravar(Request $request, Laudo $laudo)
+    {
+        $unidadeOperacionalId = OrdemServico::whereKey($laudo->ordem_servico_id)->value('unidade_operacional_id');
+
+        abort_unless(in_array($unidadeOperacionalId, $this->unidadesOperacionaisPermitidas()), 403);
+
+        $request->validate([
+            'arquivo' => ['required', 'file', 'mimes:pdf'],
+        ], [
+            'arquivo.required' => 'Selecione um arquivo PDF.',
+            'arquivo.uploaded' => 'Não foi possível enviar o arquivo. Verifique se ele não excede o tamanho máximo permitido.',
+            'arquivo.mimes' => 'O arquivo deve ser um PDF.',
+        ]);
+
+        $arquivo = $request->file('arquivo');
+
+        DB::transaction(function () use ($laudo, $arquivo) {
+            $now = now();
+
+            ArquivoLaboratorio::updateOrCreate(
+                ['laudo_id' => $laudo->laudo_id],
+                [
+                    'content_type' => $arquivo->getMimeType(),
+                    'document_content' => $arquivo->get(),
+                    'nome' => Str::limit($arquivo->getClientOriginalName(), 50, ''),
+                    'tamanho' => $arquivo->getSize(),
+                ]
+            );
+
+            $laudo->update(['status_atual' => self::STATUS_ENVIADO_RESPTEC]);
+
+            OrdemServico::whereKey($laudo->ordem_servico_id)->update([
+                'status_atual' => self::STATUS_ENVIADO_RESPTEC,
+                'data_status_atual' => $now,
+            ]);
+
+            FracaoAmostra::where('ordem_servico_id', $laudo->ordem_servico_id)->update([
+                'status_atual' => self::STATUS_ENVIADO_RESPTEC,
+                'data_status_atual' => $now,
+            ]);
+        });
+
+        return back()->with('success', "PDF do laudo {$laudo->numero_laudo} gravado com sucesso.");
     }
 }
