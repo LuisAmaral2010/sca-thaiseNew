@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export default function RejeitarTodas({ solicitacao, ordens }) {
     const { data, setData, post, processing, errors } = useForm({
-        data_rejeicao: new Date().toISOString().slice(0, 10),
+        data_rejeicao: new Date().toLocaleDateString('en-CA'), // data local (AAAA-MM-DD), não UTC
         motivo: '',
     });
 

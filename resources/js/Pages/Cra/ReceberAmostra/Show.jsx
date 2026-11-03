@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export default function Show({ ordem, fracao_amostra_id, amostra_descricao }) {
     const { data, setData, post, processing, errors } = useForm({
-        data_recebimento: new Date().toISOString().slice(0, 10),
+        data_recebimento: new Date().toLocaleDateString('en-CA'), // data local (AAAA-MM-DD), não UTC
         observacao: '',
         fracao_amostra_id: fracao_amostra_id ?? null,
     });

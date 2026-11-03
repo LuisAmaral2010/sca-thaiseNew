@@ -68,31 +68,37 @@
 
         <main>
             @hasSection('use_sidebar')
-                <div class="sca-layout">
-                    <aside class="sca-sidebar">
+                <div class="sca-layout" id="scaLayout">
+                    {{-- Aplica o estado salvo (recolhido/expandido) antes de renderizar o menu, evitando "piscar" --}}
+                    <script>
+                        if (document.cookie.split('; ').includes('sidebar_state=false')) {
+                            document.getElementById('scaLayout').classList.add('is-collapsed');
+                        }
+                    </script>
+                    <aside class="sca-sidebar" id="scaSidebar">
                         <div class="sca-sidebar__brand">
                             <span>SCA</span>
                         </div>
 
                         <div class="sca-sidebar__group-label">Navegação</div>
                         <nav class="sca-sidebar__nav">
-                            <a class="sca-sidebar__link {{ request()->is('dashboard*') ? 'is-active' : '' }}" href="{{ route('dashboard.index') }}">
+                            <a class="sca-sidebar__link {{ request()->is('dashboard*') ? 'is-active' : '' }}" href="{{ route('dashboard.index') }}" title="Dashboard">
                                 <x-icon name="layout-dashboard" />
                                 <span>Dashboard</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">
+                            <a class="sca-sidebar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra" title="CRA">
                                 <x-icon name="building-2" />
                                 <span>CRA</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">
+                            <a class="sca-sidebar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio" title="Laboratório">
                                 <x-icon name="flask-conical" />
                                 <span>Laboratório</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec">
+                            <a class="sca-sidebar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec" title="Resp Tec">
                                 <x-icon name="user-cog" />
                                 <span>Resp Tec</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('solicitacao*') || request()->is('solicitacoes_servicos*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacoes_servicos">
+                            <a class="sca-sidebar__link {{ request()->is('solicitacao*') || request()->is('solicitacoes_servicos*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacoes_servicos" title="Solicitante">
                                 <x-icon name="circle-user" />
                                 <span>Solicitante</span>
                             </a>
@@ -111,7 +117,7 @@
                                     <span class="sca-avatar">{{ $sidebarUserInitials ?: '?' }}</span>
                                     <span class="sca-sidebar__user-name">{{ auth()->user()->name }}</span>
                                 </div>
-                                <a class="sca-sidebar__link sca-sidebar__link--danger" href="/logout">
+                                <a class="sca-sidebar__link sca-sidebar__link--danger" href="/logout" title="Sair">
                                     <x-icon name="log-out" />
                                     <span>Sair</span>
                                 </a>
@@ -120,11 +126,47 @@
                     </aside>
 
                     <div class="sca-layout__content">
+                        <header class="sca-layout__header">
+                            <button type="button" class="sca-sidebar-trigger" id="scaSidebarTrigger" aria-controls="scaSidebar" aria-expanded="true" title="Mostrar/esconder menu (Ctrl+B)">
+                                <x-icon name="panel-left" />
+                                <span class="visually-hidden">Mostrar/esconder menu</span>
+                            </button>
+                            <span class="sca-layout__separator"></span>
+                        </header>
                         <div class="container">
                             @yield('content')
                         </div>
                     </div>
                 </div>
+
+                {{-- Mostra/esconde o menu lateral; usa o mesmo cookie do menu das páginas React --}}
+                <script>
+                    (function () {
+                        const layout = document.getElementById('scaLayout');
+                        const trigger = document.getElementById('scaSidebarTrigger');
+
+                        function sincronizar() {
+                            trigger.setAttribute('aria-expanded', String(!layout.classList.contains('is-collapsed')));
+                        }
+
+                        function alternar() {
+                            const recolhido = layout.classList.toggle('is-collapsed');
+                            document.cookie = 'sidebar_state=' + !recolhido + '; path=/; max-age=' + (60 * 60 * 24 * 7);
+                            sincronizar();
+                        }
+
+                        trigger.addEventListener('click', alternar);
+
+                        document.addEventListener('keydown', function (e) {
+                            if (e.key === 'b' && (e.ctrlKey || e.metaKey)) {
+                                e.preventDefault();
+                                alternar();
+                            }
+                        });
+
+                        sincronizar();
+                    })();
+                </script>
             @else
                 <div class="container">
                     @yield('content')

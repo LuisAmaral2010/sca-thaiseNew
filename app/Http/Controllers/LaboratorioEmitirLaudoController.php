@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FracaoAmostra;
 use App\Models\Laudo;
 use App\Models\OrdemServico;
 use App\Models\PermissaoUnidadeOperacional;
+use App\Models\SolicitacaoServico;
 use App\Models\UnidadeOperacional;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -176,8 +178,9 @@ class LaboratorioEmitirLaudoController extends Controller
     // reemitir o DOC não gera outro número), ou cria um novo com o próximo
     // número no formato RYY0009 (R + ano de 2 dígitos + contador de 4
     // dígitos, reiniciado a cada virada de ano). O bloqueio pessimista evita
-    // que duas emissões simultâneas gerem o mesmo número. Em seguida marca o
-    // laudo e a ordem de serviço com o status "PRÉVIA DO LAUDO CRIADA".
+    // que duas emissões simultâneas gerem o mesmo número. Em seguida marca
+    // com o status "PRÉVIA DO LAUDO CRIADA" o laudo, a ordem de serviço (com
+    // registro em ordem_servico_historico), suas frações e a solicitação.
     private function obterOuCriarLaudo(OrdemServico $ordem_servico): Laudo
     {
         return DB::transaction(function () use ($ordem_servico) {
@@ -212,10 +215,22 @@ class LaboratorioEmitirLaudoController extends Controller
 
             $laudo->update(['status_atual' => self::STATUS_PREVIA_CRIADA]);
 
-            $ordem_servico->update([
-                'status_atual' => self::STATUS_PREVIA_CRIADA,
-                'data_status_atual' => now(),
-            ]);
+            // Ordem de serviço: só muda (e ganha linha no histórico) na
+            // primeira emissão; baixar o DOC de novo não duplica o histórico
+            if ($ordem_servico->status_atual !== self::STATUS_PREVIA_CRIADA) {
+                $ordem_servico->update([
+                    'status_atual' => self::STATUS_PREVIA_CRIADA,
+                    'data_status_atual' => now(),
+                ]);
+
+                $ordem_servico->registrarHistorico();
+            }
+
+            FracaoAmostra::where('ordem_servico_id', $ordem_servico->ordem_servico_id)
+                ->update(['status_atual' => self::STATUS_PREVIA_CRIADA]);
+
+            SolicitacaoServico::whereKey($ordem_servico->solicitacao_servico_id)
+                ->update(['status' => self::STATUS_PREVIA_CRIADA]);
 
             return $laudo;
         });

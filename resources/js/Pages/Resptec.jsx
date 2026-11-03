@@ -4,7 +4,7 @@ import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const funcionalidades = [
-    { titulo: 'Aprovar laudo', icon: FileCheckIcon },
+    { titulo: 'Aprovar laudo', icon: FileCheckIcon, href: route('resptec.aprovar-laudo') },
     { titulo: 'Gerenciar permissões de laboratório', icon: ShieldIcon },
     {
         titulo: 'Gerenciar cadastro de análises',

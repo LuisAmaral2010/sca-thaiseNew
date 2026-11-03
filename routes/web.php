@@ -19,6 +19,7 @@ use App\Http\Controllers\UnidadeOperacionalController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ListaSolicitacaoServicoController;
 use App\Http\Controllers\CraReceberAmostraController;
+use App\Http\Controllers\ResptecAprovarLaudoController;
 use App\Http\Controllers\PlanoAcaoController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\HomeController;
@@ -347,6 +348,18 @@ Route::post('/laboratorio/gravar-laudo/{laudo}', [LaboratorioGravarLaudoControll
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');
 })->name('resptec');
+
+Route::get('/resptec/aprovar-laudo', [ResptecAprovarLaudoController::class, 'index'])
+    ->name('resptec.aprovar-laudo')->middleware('auth');
+
+Route::get('/resptec/aprovar-laudo/{laudo}/arquivo', [ResptecAprovarLaudoController::class, 'baixarArquivo'])
+    ->name('resptec.aprovar-laudo.arquivo')->middleware('auth');
+
+Route::post('/resptec/aprovar-laudo/{laudo}/aprovar', [ResptecAprovarLaudoController::class, 'aprovar'])
+    ->name('resptec.aprovar-laudo.aprovar')->middleware('auth');
+
+Route::post('/resptec/aprovar-laudo/{laudo}/rejeitar', [ResptecAprovarLaudoController::class, 'rejeitar'])
+    ->name('resptec.aprovar-laudo.rejeitar')->middleware('auth');
 
 /*
 Route::get('/solicitante', function () {

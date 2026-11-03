@@ -7,15 +7,17 @@ use App\Models\FracaoAmostra;
 use App\Models\Laudo;
 use App\Models\OrdemServico;
 use App\Models\PermissaoUnidadeOperacional;
+use App\Models\SolicitacaoServico;
 use App\Models\UnidadeOperacional;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class LaboratorioGravarLaudoController extends Controller
 {
-    private const STATUS_ENVIADO_RESPTEC = 'LAUDO ENVIADO PARA RESPTEC';
+    private const STATUS_AGUARDANDO_RESPTEC = 'LAUDO ESPERANDO APROVAÇÃO DO RESPTEC';
 
     // Unidades operacionais em que o usuário logado tem permissão de
     // laboratório (permissao_unidade_operacional.usuario_matricula)
@@ -86,8 +88,9 @@ class LaboratorioGravarLaudoController extends Controller
     }
 
     // Grava o PDF escolhido pelo usuário na tabela arquivo_laboratorio,
-    // substituindo o arquivo anterior do laudo, se existir, e marca o laudo,
-    // a ordem de serviço e suas frações com "LAUDO ENVIADO PARA RESPTEC"
+    // substituindo o arquivo anterior do laudo, se existir, e marca com
+    // "LAUDO ESPERANDO APROVAÇÃO DO RESPTEC" o laudo, a ordem de serviço (com
+    // registro em ordem_servico_historico), suas frações e a solicitação
     public function gravar(Request $request, Laudo $laudo)
     {
         $unidadeOperacionalId = OrdemServico::whereKey($laudo->ordem_servico_id)->value('unidade_operacional_id');
@@ -104,6 +107,16 @@ class LaboratorioGravarLaudoController extends Controller
 
         $arquivo = $request->file('arquivo');
 
+        // O nome do PDF deve ser o número do laudo (ex.: R260002.pdf), sem
+        // diferenciar maiúsculas de minúsculas
+        $nomeSemExtensao = pathinfo($arquivo->getClientOriginalName(), PATHINFO_FILENAME);
+
+        if (strcasecmp($nomeSemExtensao, (string) $laudo->numero_laudo) !== 0) {
+            throw ValidationException::withMessages([
+                'arquivo' => "O arquivo deve se chamar {$laudo->numero_laudo}.pdf (arquivo selecionado: {$arquivo->getClientOriginalName()}).",
+            ]);
+        }
+
         DB::transaction(function () use ($laudo, $arquivo) {
             $now = now();
 
@@ -117,17 +130,28 @@ class LaboratorioGravarLaudoController extends Controller
                 ]
             );
 
-            $laudo->update(['status_atual' => self::STATUS_ENVIADO_RESPTEC]);
+            $laudo->update(['status_atual' => self::STATUS_AGUARDANDO_RESPTEC]);
 
-            OrdemServico::whereKey($laudo->ordem_servico_id)->update([
-                'status_atual' => self::STATUS_ENVIADO_RESPTEC,
-                'data_status_atual' => $now,
-            ]);
+            // Ordem de serviço: só muda (e ganha linha no histórico) no
+            // primeiro envio; regravar o PDF não duplica o histórico
+            $ordem = OrdemServico::findOrFail($laudo->ordem_servico_id);
+
+            if ($ordem->status_atual !== self::STATUS_AGUARDANDO_RESPTEC) {
+                $ordem->update([
+                    'status_atual' => self::STATUS_AGUARDANDO_RESPTEC,
+                    'data_status_atual' => $now,
+                ]);
+
+                $ordem->registrarHistorico();
+            }
 
             FracaoAmostra::where('ordem_servico_id', $laudo->ordem_servico_id)->update([
-                'status_atual' => self::STATUS_ENVIADO_RESPTEC,
+                'status_atual' => self::STATUS_AGUARDANDO_RESPTEC,
                 'data_status_atual' => $now,
             ]);
+
+            SolicitacaoServico::whereKey($ordem->solicitacao_servico_id)
+                ->update(['status' => self::STATUS_AGUARDANDO_RESPTEC]);
         });
 
         return back()->with('success', "PDF do laudo {$laudo->numero_laudo} gravado com sucesso.");

@@ -36,6 +36,32 @@ function comRowSpanMaterial(ordens) {
     });
 }
 
+// Agrupa ordens consecutivas do mesmo material (mesmo critério do rowSpan da tabela)
+function agruparPorMaterial(ordens) {
+    return ordens.reduce((grupos, ordem) => {
+        const ultimo = grupos[grupos.length - 1];
+        if (ultimo && ultimo.material === ordem.material) {
+            ultimo.ordens.push(ordem);
+        } else {
+            grupos.push({ material: ordem.material, ordens: [ordem] });
+        }
+        return grupos;
+    }, []);
+}
+
+// Link de download do DOC (não é navegação Inertia)
+function BotaoCriarPrevia({ ordem, className = '' }) {
+    return (
+        <Button
+            size="sm"
+            className={className}
+            render={<a href={route('laboratorio.emitir-laudo.emitir', ordem.ordem_servico_id)} />}
+        >
+            Criar prévia do laudo
+        </Button>
+    );
+}
+
 export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
     const [dataInicial, setDataInicial] = useState(filtros.data_inicial ?? '');
     const [dataFinal, setDataFinal] = useState(filtros.data_final ?? '');
@@ -67,8 +93,11 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                     <CardTitle>Criar Prévia do Laudo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={filtrar} className="flex flex-wrap items-end gap-4">
-                        <Field className="w-40">
+                    <form
+                        onSubmit={filtrar}
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end"
+                    >
+                        <Field className="w-full lg:w-40">
                             <FieldLabel htmlFor="data_inicial">Data Inicial</FieldLabel>
                             <Input
                                 id="data_inicial"
@@ -78,7 +107,7 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                             />
                         </Field>
 
-                        <Field className="w-40">
+                        <Field className="w-full lg:w-40">
                             <FieldLabel htmlFor="data_final">Data Final</FieldLabel>
                             <Input
                                 id="data_final"
@@ -88,7 +117,7 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                             />
                         </Field>
 
-                        <Field className="w-64">
+                        <Field className="w-full lg:w-64">
                             <FieldLabel htmlFor="unidade_operacional_id">Unidade Operacional</FieldLabel>
                             <Select
                                 items={unidadeItems}
@@ -110,10 +139,18 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                             </Select>
                         </Field>
 
-                        <Button type="submit">Filtrar</Button>
-                        <Button variant="outline" render={<Link href={route('laboratorio')} />}>
-                            Voltar
-                        </Button>
+                        <div className="flex gap-2 sm:col-span-2 lg:col-auto">
+                            <Button type="submit" className="flex-1 lg:flex-none">
+                                Filtrar
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="flex-1 lg:flex-none"
+                                render={<Link href={route('laboratorio')} />}
+                            >
+                                Voltar
+                            </Button>
+                        </div>
                     </form>
 
                     {ordens.length === 0 ? (
@@ -130,58 +167,106 @@ export default function EmitirLaudo({ unidadesOperacionais, filtros, ordens }) {
                             </EmptyHeader>
                         </Empty>
                     ) : (
-                        <Table className="mt-6">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ordem de Serviço</TableHead>
-                                    <TableHead>Material</TableHead>
-                                    <TableHead>Serviço</TableHead>
-                                    <TableHead>Responsável pela Atividade</TableHead>
-                                    <TableHead>Unidade Operacional</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Data Aceite Laboratório</TableHead>
-                                    <TableHead>Ação</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {ordensComRowSpan.map((ordem) => (
-                                    <TableRow key={ordem.ordem_servico_id}>
-                                        <TableCell>#{ordem.ordem_servico_id}</TableCell>
-                                        {ordem.materialRowSpan > 0 && (
-                                            <TableCell rowSpan={ordem.materialRowSpan}>
-                                                {ordem.material ?? '—'}
-                                            </TableCell>
-                                        )}
-                                        <TableCell>{ordem.servicos ?? '—'}</TableCell>
-                                        <TableCell>{ordem.responsavel_atividade ?? '—'}</TableCell>
-                                        <TableCell>{ordem.unidade_operacional ?? '—'}</TableCell>
-                                        <TableCell>
-                                            {ordem.status ? (
-                                                <Badge variant="secondary">{ordem.status}</Badge>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </TableCell>
-                                        <TableCell>{ordem.data_aceite_laboratorio ?? '—'}</TableCell>
-                                        <TableCell>
-                                            <Button
-                                                size="sm"
-                                                render={
-                                                    <a
-                                                        href={route(
-                                                            'laboratorio.emitir-laudo.emitir',
-                                                            ordem.ordem_servico_id
+                        <>
+                            {/* Telas grandes (a partir de 1280px): tabela */}
+                            <div className="mt-6 hidden xl:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-normal">Ordem de Serviço</TableHead>
+                                            <TableHead className="whitespace-normal">Material</TableHead>
+                                            <TableHead className="whitespace-normal">Serviço</TableHead>
+                                            <TableHead className="whitespace-normal">Responsável pela Atividade</TableHead>
+                                            <TableHead className="whitespace-normal">Unidade Operacional</TableHead>
+                                            <TableHead className="whitespace-normal">Status</TableHead>
+                                            <TableHead className="whitespace-normal">Data Aceite Laboratório</TableHead>
+                                            <TableHead className="whitespace-normal">Ação</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {ordensComRowSpan.map((ordem) => (
+                                            <TableRow key={ordem.ordem_servico_id}>
+                                                <TableCell>#{ordem.ordem_servico_id}</TableCell>
+                                                {ordem.materialRowSpan > 0 && (
+                                                    <TableCell
+                                                        rowSpan={ordem.materialRowSpan}
+                                                        className="align-top whitespace-normal"
+                                                    >
+                                                        {ordem.material ?? '—'}
+                                                    </TableCell>
+                                                )}
+                                                <TableCell className="whitespace-normal">{ordem.servicos ?? '—'}</TableCell>
+                                                <TableCell className="whitespace-normal">
+                                                    {ordem.responsavel_atividade ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="whitespace-normal">
+                                                    {ordem.unidade_operacional ?? '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {ordem.status ? (
+                                                        <Badge variant="secondary" className="h-auto whitespace-normal text-left">
+                                                            {ordem.status}
+                                                        </Badge>
+                                                    ) : (
+                                                        '—'
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>{ordem.data_aceite_laboratorio ?? '—'}</TableCell>
+                                                <TableCell>
+                                                    <BotaoCriarPrevia ordem={ordem} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Até 1280px: um cartão por material, com suas ordens de serviço */}
+                            <div className="mt-6 flex flex-col gap-3 xl:hidden">
+                                {agruparPorMaterial(ordens).map((grupo, idx) => (
+                                    <div key={idx} className="rounded-lg border">
+                                        <div className="border-b bg-muted/50 px-3 py-2">
+                                            <div className="text-xs text-muted-foreground">Material</div>
+                                            <div className="font-medium break-words">{grupo.material ?? '—'}</div>
+                                        </div>
+
+                                        <div className="divide-y">
+                                            {grupo.ordens.map((ordem) => (
+                                                <div key={ordem.ordem_servico_id} className="flex flex-col gap-3 px-3 py-3">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <span className="text-sm font-medium">
+                                                            Ordem de Serviço #{ordem.ordem_servico_id}
+                                                        </span>
+                                                        {ordem.status && (
+                                                            <Badge variant="secondary" className="h-auto whitespace-normal text-left">
+                                                                {ordem.status}
+                                                            </Badge>
                                                         )}
-                                                    />
-                                                }
-                                            >
-                                                Criar prévia do laudo
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
+                                                    </div>
+
+                                                    <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+                                                        <dt className="text-muted-foreground">Serviço</dt>
+                                                        <dd className="mb-1 break-words sm:mb-0">{ordem.servicos ?? '—'}</dd>
+                                                        <dt className="text-muted-foreground">Responsável pela Atividade</dt>
+                                                        <dd className="mb-1 break-words sm:mb-0">
+                                                            {ordem.responsavel_atividade ?? '—'}
+                                                        </dd>
+                                                        <dt className="text-muted-foreground">Unidade Operacional</dt>
+                                                        <dd className="mb-1 break-words sm:mb-0">
+                                                            {ordem.unidade_operacional ?? '—'}
+                                                        </dd>
+                                                        <dt className="text-muted-foreground">Data Aceite Laboratório</dt>
+                                                        <dd>{ordem.data_aceite_laboratorio ?? '—'}</dd>
+                                                    </dl>
+
+                                                    <BotaoCriarPrevia ordem={ordem} className="w-full" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

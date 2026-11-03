@@ -42,10 +42,74 @@ class SolicitacaoServicoController extends Controller
     // Visualizar a solicitacao_servico
     public function show(SolicitacaoServico $solicitacao_servico)
     {
-        $solicitacao_servico->load(['ordemServico.recebedor', 'ordemServico.unidadeOperacional']);
+        $solicitacao_servico->load(['atividade', 'empregado', 'amostras', 'ordemServico.unidadeOperacional']);
+
+        $ordens = $solicitacao_servico->ordemServico->keyBy('ordem_servico_id');
+
+        // Frações de cada amostra (uma por ordem de serviço / unidade
+        // operacional), com os serviços vinculados via execucao_analise
+        $fracoesPorAmostra = FracaoAmostra::whereIn('amostra_id', $solicitacao_servico->amostras->pluck('amostra_id'))
+            ->with('execucoes_analises.servico')
+            ->orderBy('fracao_amostra_id')
+            ->get()
+            ->groupBy('amostra_id');
+
+        // Mesma estrutura do resumo do modal #modalResumo (create.blade.php):
+        // amostra -> frações (unidade operacional) -> serviços
+        $resumo = $solicitacao_servico->amostras->sortBy('amostra_id')->map(function (Amostra $amostra) use ($fracoesPorAmostra, $ordens) {
+            $fracoes = $fracoesPorAmostra->get($amostra->amostra_id, collect())->map(fn (FracaoAmostra $fracao) => [
+                'status' => $fracao->status_atual,
+                'unidade' => $ordens->get($fracao->ordem_servico_id)?->unidadeOperacional?->nome
+                    ?? 'Unidade ' . ($ordens->get($fracao->ordem_servico_id)?->unidade_operacional_id ?? '-'),
+                'servicos' => $fracao->execucoes_analises
+                    ->filter(fn ($execucao) => $execucao->servico)
+                    ->map(fn ($execucao) => [
+                        'descricao' => $execucao->servico->descricao,
+                        'tipo' => $execucao->servico->tipo_servico,
+                    ])
+                    ->values(),
+            ])->values();
+
+            return [
+                'amostra' => $amostra,
+                'fracoes' => $fracoes,
+                // Cada fração ocupa ao menos uma linha, mesmo sem serviços
+                'total_linhas' => max(1, $fracoes->sum(fn ($fracao) => max(1, $fracao['servicos']->count()))),
+            ];
+        })->values();
+
+        // Histórico de status (ordem_servico_historico) de cada ordem de
+        // serviço da solicitação, para o gráfico de trace
+        $historico = DB::table('ordem_servico_historico')
+            ->whereIn('ordem_servico_id', $ordens->keys())
+            ->orderBy('data_status_atual')
+            ->orderBy('ordem_servico_historico_id')
+            ->get()
+            ->groupBy('ordem_servico_id');
+
+        $tracos = $ordens->sortKeys()->map(function (OrdemServico $ordem) use ($historico) {
+            $nome = $ordem->unidadeOperacional?->nome ?? 'Unidade ' . $ordem->unidade_operacional_id;
+
+            return [
+                'ordem_servico_id' => $ordem->ordem_servico_id,
+                'nome' => $nome,
+                // Sigla entre parênteses no fim do nome (ex.: "LASI"), usada no rótulo do traço
+                'sigla' => preg_match('/\(([^)]+)\)\s*$/', $nome, $m) ? $m[1] : $nome,
+                'eventos' => $historico->get($ordem->ordem_servico_id, collect())
+                    ->map(fn ($registro) => [
+                        'status' => $registro->status_atual,
+                        'data' => \Carbon\Carbon::parse($registro->data_status_atual)->toIso8601String(),
+                    ])
+                    ->values(),
+            ];
+        })->filter(fn ($traco) => $traco['eventos']->isNotEmpty())->values();
 
         // Carregar a view
-        return view('solicitacoes_servicos.show', ['solicitacao' => $solicitacao_servico]);
+        return view('solicitacoes_servicos.show', [
+            'solicitacao' => $solicitacao_servico,
+            'resumo' => $resumo,
+            'tracos' => $tracos,
+        ]);
     }
 
     // Carregar o formulário cadastrar nova Solicitação de Serviçoo

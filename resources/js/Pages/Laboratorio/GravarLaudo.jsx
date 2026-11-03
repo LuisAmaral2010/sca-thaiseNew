@@ -42,13 +42,20 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
 
     const { flash, errors } = usePage().props;
     const [gravandoLaudoId, setGravandoLaudoId] = useState(null);
+    const [erroSelecao, setErroSelecao] = useState(null);
 
     // Abre a caixa de diálogo "Abrir" iniciando na pasta Documentos e
     // exibindo apenas arquivos PDF. A File System Access API (Chrome/Edge)
     // permite definir a pasta inicial; nos demais navegadores usa-se um
     // <input type="file">, que abre na última pasta usada pelo sistema.
+    // Os navegadores só filtram a caixa de diálogo por tipo/extensão, não por
+    // nome; por isso o filtro indica o nome esperado (número do laudo) e o
+    // arquivo escolhido é conferido antes do envio.
     async function selecionarPdf(laudo) {
         let arquivo;
+        const nomeEsperado = `${laudo.numero_laudo}.pdf`;
+
+        setErroSelecao(null);
 
         if (window.showOpenFilePicker) {
             try {
@@ -56,7 +63,12 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                     startIn: 'documents',
                     multiple: false,
                     excludeAcceptAllOption: true,
-                    types: [{ description: 'Arquivos PDF', accept: { 'application/pdf': ['.pdf'] } }],
+                    types: [
+                        {
+                            description: `Laudo ${laudo.numero_laudo} (${nomeEsperado})`,
+                            accept: { 'application/pdf': ['.pdf'] },
+                        },
+                    ],
                 });
                 arquivo = await handle.getFile();
             } catch (error) {
@@ -68,12 +80,20 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'application/pdf,.pdf';
+                input.title = `Selecione o arquivo ${nomeEsperado}`;
                 input.onchange = () => resolve(input.files[0]);
                 input.click();
             });
         }
 
         if (!arquivo) return;
+
+        if (arquivo.name.toLowerCase() !== nomeEsperado.toLowerCase()) {
+            setErroSelecao(
+                `O arquivo deve se chamar ${nomeEsperado} (arquivo selecionado: ${arquivo.name}). Nenhum arquivo foi gravado.`
+            );
+            return;
+        }
 
         router.post(
             route('laboratorio.gravar-laudo.gravar', laudo.laudo_id),
@@ -87,6 +107,38 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
         );
     }
 
+    function StatusLaudo({ laudo }) {
+        if (!laudo.status_atual) {
+            return '—';
+        }
+
+        return (
+            <Badge variant="secondary" className="h-auto whitespace-normal text-left">
+                {laudo.status_atual}
+            </Badge>
+        );
+    }
+
+    // Botão "Gravar Laudo PDF" e o nome do PDF já gravado, se houver
+    function AcaoGravar({ laudo, className = '', larguraTotal = false }) {
+        return (
+            <div className={className}>
+                <Button
+                    type="button"
+                    size="sm"
+                    className={larguraTotal ? 'w-full' : ''}
+                    disabled={gravandoLaudoId !== null}
+                    onClick={() => selecionarPdf(laudo)}
+                >
+                    {gravandoLaudoId === laudo.laudo_id ? 'Gravando...' : 'Gravar Laudo PDF'}
+                </Button>
+                {laudo.arquivo_nome && (
+                    <div className="mt-1 text-xs break-words text-muted-foreground">{laudo.arquivo_nome}</div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <AppLayout>
             <Head title="Gravar Laudo" />
@@ -95,8 +147,11 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                     <CardTitle>Gravar Laudo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={filtrar} className="flex flex-wrap items-end gap-4">
-                        <Field className="w-40">
+                    <form
+                        onSubmit={filtrar}
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end"
+                    >
+                        <Field className="w-full lg:w-40">
                             <FieldLabel htmlFor="data_inicial">Data Inicial</FieldLabel>
                             <Input
                                 id="data_inicial"
@@ -106,7 +161,7 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                             />
                         </Field>
 
-                        <Field className="w-40">
+                        <Field className="w-full lg:w-40">
                             <FieldLabel htmlFor="data_final">Data Final</FieldLabel>
                             <Input
                                 id="data_final"
@@ -116,7 +171,7 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                             />
                         </Field>
 
-                        <Field className="w-64">
+                        <Field className="w-full lg:w-64">
                             <FieldLabel htmlFor="unidade_operacional_id">Unidade Operacional</FieldLabel>
                             <Select
                                 items={unidadeItems}
@@ -138,10 +193,29 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                             </Select>
                         </Field>
 
-                        <Button type="submit">Filtrar</Button>
-                        <Button variant="outline" render={<Link href={route('laboratorio')} />}>
-                            Voltar
-                        </Button>
+                        <div className="flex gap-2 sm:col-span-2 lg:col-auto">
+
+                            <Button type="submit" className="flex-1 lg:flex-none">
+
+                                Filtrar
+
+                            </Button>
+
+                            <Button
+
+                                variant="outline"
+
+                                className="flex-1 lg:flex-none"
+
+                                render={<Link href={route('laboratorio')} />}
+
+                            >
+
+                                Voltar
+
+                            </Button>
+
+                        </div>
                     </form>
 
                     {flash?.success && (
@@ -149,7 +223,12 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                             <AlertDescription>{flash.success}</AlertDescription>
                         </Alert>
                     )}
-                    {errors.arquivo && (
+                    {erroSelecao && (
+                        <Alert variant="destructive" className="mt-6">
+                            <AlertDescription>{erroSelecao}</AlertDescription>
+                        </Alert>
+                    )}
+                    {!erroSelecao && errors.arquivo && (
                         <Alert variant="destructive" className="mt-6">
                             <AlertDescription>{errors.arquivo}</AlertDescription>
                         </Alert>
@@ -169,50 +248,67 @@ export default function GravarLaudo({ unidadesOperacionais, filtros, laudos }) {
                             </EmptyHeader>
                         </Empty>
                     ) : (
-                        <Table className="mt-6">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Número do Laudo</TableHead>
-                                    <TableHead>Ordem de Serviço</TableHead>
-                                    <TableHead>Unidade Operacional</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Data de Emissão</TableHead>
-                                    <TableHead className="text-center">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            {/* Telas grandes (a partir de 1024px): tabela */}
+                            <div className="mt-6 hidden lg:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="whitespace-normal">Número do Laudo</TableHead>
+                                            <TableHead className="whitespace-normal">Ordem de Serviço</TableHead>
+                                            <TableHead className="whitespace-normal">Unidade Operacional</TableHead>
+                                            <TableHead className="whitespace-normal">Status</TableHead>
+                                            <TableHead className="whitespace-normal">Data de Emissão</TableHead>
+                                            <TableHead className="text-center">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {laudos.map((laudo) => (
+                                            <TableRow key={laudo.laudo_id}>
+                                                <TableCell>{laudo.numero_laudo}</TableCell>
+                                                <TableCell>#{laudo.ordem_servico_id}</TableCell>
+                                                <TableCell className="whitespace-normal">
+                                                    {laudo.unidade_operacional ?? '—'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusLaudo laudo={laudo} />
+                                                </TableCell>
+                                                <TableCell>{laudo.data_emissao ?? '—'}</TableCell>
+                                                <TableCell className="text-center whitespace-normal">
+                                                    <AcaoGravar laudo={laudo} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Até 1024px: um cartão por laudo */}
+                            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:hidden">
                                 {laudos.map((laudo) => (
-                                    <TableRow key={laudo.laudo_id}>
-                                        <TableCell>{laudo.numero_laudo}</TableCell>
-                                        <TableCell>#{laudo.ordem_servico_id}</TableCell>
-                                        <TableCell>{laudo.unidade_operacional ?? '—'}</TableCell>
-                                        <TableCell>
-                                            {laudo.status_atual ? (
-                                                <Badge variant="secondary">{laudo.status_atual}</Badge>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </TableCell>
-                                        <TableCell>{laudo.data_emissao ?? '—'}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                disabled={gravandoLaudoId !== null}
-                                                onClick={() => selecionarPdf(laudo)}
-                                            >
-                                                {gravandoLaudoId === laudo.laudo_id ? 'Gravando...' : 'Gravar Laudo PDF'}
-                                            </Button>
-                                            {laudo.arquivo_nome && (
-                                                <div className="mt-1 text-xs text-muted-foreground">
-                                                    {laudo.arquivo_nome}
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
+                                    <div key={laudo.laudo_id} className="flex flex-col gap-3 rounded-lg border p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="text-xs text-muted-foreground">Número do Laudo</div>
+                                                <div className="font-medium break-words">{laudo.numero_laudo}</div>
+                                            </div>
+                                            <StatusLaudo laudo={laudo} />
+                                        </div>
+
+                                        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                                            <dt className="text-muted-foreground">Ordem de Serviço</dt>
+                                            <dd>#{laudo.ordem_servico_id}</dd>
+                                            <dt className="text-muted-foreground">Unidade</dt>
+                                            <dd className="break-words">{laudo.unidade_operacional ?? '—'}</dd>
+                                            <dt className="text-muted-foreground">Emissão</dt>
+                                            <dd>{laudo.data_emissao ?? '—'}</dd>
+                                        </dl>
+
+                                        <AcaoGravar laudo={laudo} className="mt-auto" larguraTotal />
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

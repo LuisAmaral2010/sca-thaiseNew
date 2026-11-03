@@ -6,6 +6,7 @@ use App\Models\Amostra;
 use App\Models\FracaoAmostra;
 use App\Models\OrdemServico;
 use App\Models\SolicitacaoServico;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -16,10 +17,29 @@ class CraReceberAmostraController extends Controller
     // outro valor de status_atual (incluindo vazio) é considerado pendente
     private const STATUS_FINALIZADOS = ['RECEBIDO_CRA', 'REJEITADO_CRA'];
 
+    // Status da solicitação de serviço após "Confirmar Recebimento de Todas"
+    // e "Confirmar Rejeição de Todas"
+    private const STATUS_SOLICITACAO_RECEBIDA = 'RECEBIDO CRA';
+    private const STATUS_SOLICITACAO_REJEITADA = 'REJEITADO PELO CRA';
+
+    // Os formulários do CRA informam só a data; o horário da confirmação é
+    // acrescentado para que ordem_servico e ordem_servico_historico registrem
+    // data e hora da ação
+    private function comHorarioAtual(string $data): Carbon
+    {
+        return Carbon::parse($data)->setTimeFrom(now());
+    }
+
     // Lista as solicitações de serviço aguardando recebimento pelo CRA
     public function index()
     {
-        $solicitacoes = SolicitacaoServico::where('status', 'ENVIADO_CRA')
+        // Recebidas/rejeitadas em lote continuam listadas até serem enviadas
+        // ao laboratório ou terem a requisição rejeitada
+        $solicitacoes = SolicitacaoServico::whereIn('status', [
+                'ENVIADO_CRA',
+                self::STATUS_SOLICITACAO_RECEBIDA,
+                self::STATUS_SOLICITACAO_REJEITADA,
+            ])
             ->with(['atividade', 'empregado'])
             ->withCount(['ordemServico as ordens_pendentes_count' => function ($query) {
                 $query->whereNotIn('status_atual', self::STATUS_FINALIZADOS);
@@ -139,7 +159,7 @@ class CraReceberAmostraController extends Controller
         DB::transaction(function () use ($ordens, $validated, $solicitacao_servico) {
             foreach ($ordens as $ordem) {
                 $ordem->update([
-                    'data_status_atual' => $validated['data_recebimento'],
+                    'data_status_atual' => $this->comHorarioAtual($validated['data_recebimento']),
                     'observacao' => $validated['observacao'] ?? $ordem->observacao,
                     'recebedor_matricula' => auth()->user()?->empregado?->matricula,
                 ]);
@@ -149,6 +169,8 @@ class CraReceberAmostraController extends Controller
 
                 $this->sincronizarStatusOrdem($ordem);
             }
+
+            $solicitacao_servico->update(['status' => self::STATUS_SOLICITACAO_RECEBIDA]);
 
             $this->atribuirNumerosCra($solicitacao_servico);
         });
@@ -181,18 +203,24 @@ class CraReceberAmostraController extends Controller
             'motivo' => ['required', 'string', 'max:255'],
         ]);
 
-        foreach ($this->todasOrdensDaSolicitacao($solicitacao_servico) as $ordem) {
-            $ordem->update([
-                'data_status_atual' => $validated['data_rejeicao'],
-                'observacao' => $validated['motivo'],
-                'recebedor_matricula' => auth()->user()?->empregado?->matricula,
-            ]);
+        $ordens = $this->todasOrdensDaSolicitacao($solicitacao_servico);
 
-            FracaoAmostra::where('ordem_servico_id', $ordem->ordem_servico_id)
-                ->update(['status_atual' => 'REJEITADO_CRA']);
+        DB::transaction(function () use ($ordens, $validated, $solicitacao_servico) {
+            foreach ($ordens as $ordem) {
+                $ordem->update([
+                    'data_status_atual' => $this->comHorarioAtual($validated['data_rejeicao']),
+                    'observacao' => $validated['motivo'],
+                    'recebedor_matricula' => auth()->user()?->empregado?->matricula,
+                ]);
 
-            $this->sincronizarStatusOrdem($ordem);
-        }
+                FracaoAmostra::where('ordem_servico_id', $ordem->ordem_servico_id)
+                    ->update(['status_atual' => 'REJEITADO_CRA']);
+
+                $this->sincronizarStatusOrdem($ordem);
+            }
+
+            $solicitacao_servico->update(['status' => self::STATUS_SOLICITACAO_REJEITADA]);
+        });
 
         return redirect()
             ->route('cra.receber-amostra.ordens', $solicitacao_servico->solicitacao_servico_id)
@@ -344,7 +372,7 @@ class CraReceberAmostraController extends Controller
 
         DB::transaction(function () use ($ordem_servico, $validated, $fracaoAmostraId) {
             $ordem_servico->update([
-                'data_status_atual' => $validated['data_recebimento'],
+                'data_status_atual' => $this->comHorarioAtual($validated['data_recebimento']),
                 'observacao' => $validated['observacao'] ?? $ordem_servico->observacao,
                 'recebedor_matricula' => auth()->user()?->empregado?->matricula,
             ]);
@@ -390,7 +418,7 @@ class CraReceberAmostraController extends Controller
         ]);
 
         $ordem_servico->update([
-            'data_status_atual' => $validated['data_rejeicao'],
+            'data_status_atual' => $this->comHorarioAtual($validated['data_rejeicao']),
             'observacao' => $validated['motivo'],
             'recebedor_matricula' => auth()->user()?->empregado?->matricula,
         ]);
