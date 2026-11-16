@@ -21,14 +21,22 @@ class SolicitacaoServico extends Model
         'data_solicitacao',
         'atividade_id',
         'solicitante_matricula',
+        'solicitante_externo_nome',
+        'cliente_externo_id',
         'status',
         'created_at',
         'update_at',
     ];
-    
+
     public function atividade()
     {
         return $this->belongsTo(Atividade::class, 'atividade_id', 'atividade_id');
+    }
+
+    // Cliente externo da requisição externa (CRA)
+    public function clienteExterno()
+    {
+        return $this->belongsTo(ClienteExterno::class, 'cliente_externo_id', 'cliente_externo_id');
     }
 
     // Criar relacionamento um para muitos

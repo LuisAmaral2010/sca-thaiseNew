@@ -8,6 +8,7 @@ use App\Models\OrdemServico;
 use App\Models\PermissaoUnidadeOperacional;
 use App\Models\SolicitacaoServico;
 use App\Models\UnidadeOperacional;
+use App\Support\ResultadoLaudoHtml;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -168,7 +169,23 @@ class LaboratorioEmitirLaudoController extends Controller
             $templateProcessor->setValue("amostra.descricao#{$indice}", $amostra->descricao ?? '');
             $templateProcessor->setValue("numero_cra#{$indice}", $amostra->numero_cra ?? '');
             $templateProcessor->setValue("analise#{$indice}", $analises);
-            $templateProcessor->setValue("resultado#{$indice}", '');
+            // Resultados preenchidos em "Criar Laudo Online" (execucao_analise.resultado)
+            $resultados = $fracoes
+                ->flatMap(fn ($fracao) => $fracao->execucoes_analises)
+                // O resultado é HTML (texto, tabelas, imagens); no DOCX entra
+                // só a versão em texto simples
+                ->map(fn ($execucao) => [
+                    'servico' => $execucao->servico->descricao ?? null,
+                    'texto' => ResultadoLaudoHtml::paraTexto($execucao->resultado),
+                ])
+                ->filter(fn ($item) => $item['texto'] !== '')
+                ->map(fn ($item) => filled($item['servico'])
+                    ? "{$item['servico']}: {$item['texto']}"
+                    : $item['texto'])
+                ->unique()
+                ->implode('; ');
+
+            $templateProcessor->setValue("resultado#{$indice}", $resultados);
 
             $indice++;
         }
@@ -189,16 +206,7 @@ class LaboratorioEmitirLaudoController extends Controller
                 ->first();
 
             if (!$laudo || empty($laudo->numero_laudo)) {
-                $prefixo = 'R' . now()->format('y');
-
-                $ultimoNumero = Laudo::where('numero_laudo', 'like', $prefixo . '%')
-                    ->lockForUpdate()
-                    ->orderByDesc('numero_laudo')
-                    ->value('numero_laudo');
-
-                $contador = $ultimoNumero ? ((int) substr($ultimoNumero, 3)) + 1 : 1;
-
-                $numeroLaudo = $prefixo . str_pad((string) $contador, 4, '0', STR_PAD_LEFT);
+                $numeroLaudo = Laudo::gerarProximoNumero();
 
                 if ($laudo) {
                     $laudo->update(['numero_laudo' => $numeroLaudo]);

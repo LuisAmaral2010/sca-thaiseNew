@@ -43,6 +43,7 @@
                 <thead>
                     <tr>
                         <x-sortable-th column="solicitacao_servico_id" :sort="$sort" :direction="$direction">#</x-sortable-th>
+                        <th>Número</th>
                         <x-sortable-th column="data_solicitacao" :sort="$sort" :direction="$direction">Data</x-sortable-th>
                         <x-sortable-th column="descricao" :sort="$sort" :direction="$direction">Descrição</x-sortable-th>
                         <th>Atividade</th>
@@ -55,11 +56,20 @@
                     @foreach ($solicitacoes_servicos as $solicitacao_servico)
                         <tr>
                             <td><span class="sca-badge">#{{ $solicitacao_servico->solicitacao_servico_id }}</span></td>
+                            <td>{{ $solicitacao_servico->numero_solicitacao_servico ?? '—' }}</td>
                             <td>{{ \Carbon\Carbon::parse($solicitacao_servico->data_solicitacao)->format('d/m/Y') }}</td>
                             <td>{{ $solicitacao_servico->descricao }}</td>
                             <td>{{ $solicitacao_servico->atividade->titulo ?? '—' }}</td>
                             <td><span class="sca-badge">{{ $solicitacao_servico->status }}</span></td>
-                            <td>{{ $solicitacao_servico->empregado->nome ?? '—' }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span></td>
+                            <td>
+                                @if ($solicitacao_servico->solicitante_externo_nome)
+                                    {{-- Requisição externa: nome do solicitante externo e quem cadastrou --}}
+                                    {{ $solicitacao_servico->solicitante_externo_nome }} <span class="sca-badge">Externo</span>
+                                    <br><span class="sca-card__muted">Cadastrado por {{ $solicitacao_servico->empregado->nome ?? $solicitacao_servico->solicitante_matricula }}</span>
+                                @else
+                                    {{ $solicitacao_servico->empregado->nome ?? '—' }} <span class="sca-card__muted">({{ $solicitacao_servico->solicitante_matricula }})</span>
+                                @endif
+                            </td>
                             <td>
                                 <a href="{{ route('solicitacoes_servicos.show', $solicitacao_servico) }}" class="sca-btn sca-btn--outline sca-btn--sm">Detalhes</a>
 

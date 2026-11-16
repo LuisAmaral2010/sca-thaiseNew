@@ -25,6 +25,24 @@ class Laudo extends Model
         'avaliador_matricula',
     ];
 
+    // Próximo número de laudo no formato RYY0009 (R + ano de 2 dígitos +
+    // contador de 4 dígitos, reiniciado a cada virada de ano). Deve ser
+    // chamado dentro de DB::transaction: o bloqueio pessimista evita que duas
+    // emissões simultâneas gerem o mesmo número.
+    public static function gerarProximoNumero(): string
+    {
+        $prefixo = 'R' . now()->format('y');
+
+        $ultimoNumero = static::where('numero_laudo', 'like', $prefixo . '%')
+            ->lockForUpdate()
+            ->orderByDesc('numero_laudo')
+            ->value('numero_laudo');
+
+        $contador = $ultimoNumero ? ((int) substr($ultimoNumero, 3)) + 1 : 1;
+
+        return $prefixo . str_pad((string) $contador, 4, '0', STR_PAD_LEFT);
+    }
+
     public function arquivoCra(): BelongsTo
     {
         return $this->belongsTo(ArquivoCRA::class);

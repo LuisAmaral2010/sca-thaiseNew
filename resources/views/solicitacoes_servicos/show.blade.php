@@ -15,6 +15,8 @@
     </div>
 </div>
 
+<x-alert />
+
 {{-- Mesmo layout do modal #modalResumo (create.blade.php), como página normal --}}
 <div class="modal-content mb-4">
 
@@ -30,18 +32,33 @@
             <div class="table-responsive">
             <table class="sca-table">
                 <tbody>
+                    {{-- Requisição externa não tem atividade --}}
+                    @unless ($solicitacao->solicitante_externo_nome)
+                        <tr>
+                            <th style="width: 180px;">Atividade</th>
+                            <td>{{ $solicitacao->atividade->titulo ?? '—' }}</td>
+                        </tr>
+                    @endunless
                     <tr>
-                        <th style="width: 180px;">Atividade</th>
-                        <td>{{ $solicitacao->atividade->titulo ?? '—' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Descrição</th>
+                        <th style="width: 180px;">Descrição</th>
                         <td>{!! nl2br(e($solicitacao->descricao ?? '—')) !!}</td>
                     </tr>
-                    <tr>
-                        <th>Solicitante</th>
-                        <td>{{ $solicitacao->empregado->nome ?? $solicitacao->solicitante_matricula ?? '—' }}</td>
-                    </tr>
+                    @if ($solicitacao->solicitante_externo_nome)
+                        {{-- Requisição externa: cadastrada pelo CRA em nome de um solicitante externo --}}
+                        <tr>
+                            <th>Solicitante externo</th>
+                            <td>{{ $solicitacao->solicitante_externo_nome }}</td>
+                        </tr>
+                        <tr>
+                            <th>Cadastrado por</th>
+                            <td>{{ $solicitacao->empregado->nome ?? $solicitacao->solicitante_matricula ?? '—' }}</td>
+                        </tr>
+                    @else
+                        <tr>
+                            <th>Solicitante</th>
+                            <td>{{ $solicitacao->empregado->nome ?? $solicitacao->solicitante_matricula ?? '—' }}</td>
+                        </tr>
+                    @endif
                     <tr>
                         <th>Data da Solicitação</th>
                         <td>{{ $solicitacao->data_solicitacao ? \Carbon\Carbon::parse($solicitacao->data_solicitacao)->format('d/m/Y') : '—' }}</td>
@@ -144,6 +161,17 @@
 
     <div class="modal-footer">
         <a href="{{ url()->previous() }}" class="sca-btn sca-btn--outline">Voltar</a>
+
+        {{-- Envio ao CRA: só enquanto a solicitação está em rascunho (status CRIADO) --}}
+        @if ($solicitacao->status === 'CRIADO')
+            <form method="POST"
+                  action="{{ route('solicitacoes_servicos.enviar_cra', $solicitacao) }}"
+                  class="d-inline"
+                  onsubmit="return confirm('Confirma o envio desta solicitação para o CRA?');">
+                @csrf
+                <button type="submit" class="sca-btn sca-btn--primary">Enviar para CRA</button>
+            </form>
+        @endif
     </div>
 
 </div>

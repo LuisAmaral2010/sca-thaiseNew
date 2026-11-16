@@ -71,6 +71,9 @@ class LaboratorioAceitarAmostraController extends Controller
                 ->get()
                 ->map(fn ($ordem) => [
                     'ordem_servico_id' => $ordem->ordem_servico_id,
+                    // Número da solicitação (00001-yyyy) vinculada via solicitacao_servico_id
+                    'numero_solicitacao_servico' => $ordem->solicitacaoServico?->numero_solicitacao_servico
+                        ?: ($ordem->solicitacao_servico_id ? '#' . $ordem->solicitacao_servico_id : null),
                     'material' => $ordem->solicitacaoServico->descricao ?? null,
                     'servicos' => $ordem->fracoesAmostra
                         ->flatMap(fn ($fracao) => $fracao->execucoes_analises->map(fn ($execucao) => $execucao->servico->descricao ?? null))

@@ -171,6 +171,7 @@ export default function AceitarAmostra({ unidadesOperacionais, filtros, ordens }
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="whitespace-normal">Solicitação</TableHead>
                                     <TableHead className="whitespace-normal">Ordem de Serviço</TableHead>
                                     <TableHead className="whitespace-normal">Material</TableHead>
                                     <TableHead className="whitespace-normal">Serviço</TableHead>
@@ -184,6 +185,7 @@ export default function AceitarAmostra({ unidadesOperacionais, filtros, ordens }
                             <TableBody>
                                 {ordensComRowSpan.map((ordem) => (
                                     <TableRow key={ordem.ordem_servico_id}>
+                                        <TableCell>{ordem.numero_solicitacao_servico ?? '—'}</TableCell>
                                         <TableCell>#{ordem.ordem_servico_id}</TableCell>
                                         {ordem.materialRowSpan > 0 && (
                                             <TableCell rowSpan={ordem.materialRowSpan} className="align-top whitespace-normal">
@@ -246,6 +248,8 @@ export default function AceitarAmostra({ unidadesOperacionais, filtros, ordens }
                                                 </div>
 
                                                 <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+                                                    <dt className="text-muted-foreground">Solicitação</dt>
+                                                    <dd className="mb-1 break-words sm:mb-0">{ordem.numero_solicitacao_servico ?? '—'}</dd>
                                                     <dt className="text-muted-foreground">Serviço</dt>
                                                     <dd className="mb-1 break-words sm:mb-0">{ordem.servicos ?? '—'}</dd>
                                                     <dt className="text-muted-foreground">Responsável pela Atividade</dt>

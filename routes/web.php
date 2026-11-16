@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AmostraController;
+use App\Http\Controllers\ClienteExternoController;
 use App\Http\Controllers\SolicitacaoServicoController;
+use App\Http\Controllers\SolicitacaoServicoExternoController;
 use App\Http\Controllers\ArquivoCRAController;
 use App\Http\Controllers\ArquivoLaboratorioController;
 use App\Http\Controllers\AtividadeController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\DropdownController;
 use App\Http\Controllers\LaboratorioAceitarAmostraController;
 use App\Http\Controllers\LaboratorioEmitirLaudoController;
 use App\Http\Controllers\LaboratorioGravarLaudoController;
+use App\Http\Controllers\LaboratorioCriarLaudoOnlineController;
 
 use App\Models\ArquivoCRA;
 use App\Models\ArquivoLaboratorio;
@@ -92,6 +95,18 @@ Route::prefix('amostras')->middleware('auth')->group(function(){
     Route::get('/{amostra}/edit', [AmostraController::class, 'edit'])->name('amostras.edit');
     Route::put('/{amostra}', [AmostraController::class, 'update'])->name('amostras.update');
     Route::delete('/{amostra}', [AmostraController::class, 'destroy'])->name('amostras.destroy');
+});
+
+// Clientes externos (pessoas físicas e jurídicas)
+Route::prefix('clientes_externos')->middleware('auth')->group(function(){
+    Route::get('/', [ClienteExternoController::class, 'index'])->name('clientes_externos.index');
+    Route::get('/create', [ClienteExternoController::class, 'create'])->name('clientes_externos.create');
+    Route::get('/buscar', [ClienteExternoController::class, 'buscar'])->name('clientes_externos.buscar');
+    Route::get('/{cliente_externo}', [ClienteExternoController::class, 'show'])->name('clientes_externos.show');
+    Route::post('/', [ClienteExternoController::class, 'store'])->name('clientes_externos.store');
+    Route::get('/{cliente_externo}/edit', [ClienteExternoController::class, 'edit'])->name('clientes_externos.edit');
+    Route::put('/{cliente_externo}', [ClienteExternoController::class, 'update'])->name('clientes_externos.update');
+    Route::delete('/{cliente_externo}', [ClienteExternoController::class, 'destroy'])->name('clientes_externos.destroy');
 });
 
 // Solicitação Serviços
@@ -295,8 +310,19 @@ Route::prefix('user-statuses')->group(function () {
 });
 */
 
-Route::get('/listasolicitacaoservico', [ListaSolicitacaoServicoController::class, 'index'])
-    ->name('listasolicitacaoservico.index');
+Route::get('/cra/listar_solicitacoes_servicos', [ListaSolicitacaoServicoController::class, 'index'])
+    ->name('cra.listar_solicitacoes_servicos.index')->middleware('auth');
+
+// Endereços antigos da lista de solicitações, mantidos para links salvos
+Route::permanentRedirect('/listasolicitacaoservico', '/cra/listar_solicitacoes_servicos');
+Route::permanentRedirect('/listar-solicitacoes-servicos', '/cra/listar_solicitacoes_servicos');
+
+// Cadastro de requisição externa (CRA): mesmo formulário de
+// /solicitacoes_servicos/create, sem atividade
+Route::prefix('cra/solicitacoes_servicos_externos')->middleware('auth')->group(function () {
+    Route::get('/create', [SolicitacaoServicoExternoController::class, 'create'])->name('cra.solicitacoes_servicos_externos.create');
+    Route::post('/store', [SolicitacaoServicoController::class, 'store'])->name('cra.solicitacoes_servicos_externos.store');
+});
 
 Route::get('/cra', function () {
     return Inertia::render('Cra');
@@ -344,6 +370,31 @@ Route::get('/laboratorio/gravar-laudo', [LaboratorioGravarLaudoController::class
 
 Route::post('/laboratorio/gravar-laudo/{laudo}', [LaboratorioGravarLaudoController::class, 'gravar'])
     ->name('laboratorio.gravar-laudo.gravar')->middleware('auth');
+
+Route::get('/laboratorio/criar-laudo-online', [LaboratorioCriarLaudoOnlineController::class, 'index'])
+    ->name('laboratorio.criar-laudo-online')->middleware('auth');
+
+Route::get('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'show'])
+    ->name('laboratorio.criar-laudo-online.show')->middleware('auth');
+
+Route::post('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'gravar'])
+    ->name('laboratorio.criar-laudo-online.gravar')->middleware('auth');
+
+Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/imagens', [LaboratorioCriarLaudoOnlineController::class, 'enviarImagem'])
+    ->name('laboratorio.criar-laudo-online.imagem.enviar')->middleware('auth');
+
+Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/imagens/{nome}', [LaboratorioCriarLaudoOnlineController::class, 'exibirImagem'])
+    ->where('nome', '[A-Fa-f0-9\-]{36}\.(png|jpg|jpeg|gif|webp)')
+    ->name('laboratorio.criar-laudo-online.imagem')->middleware('auth');
+
+Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/pdf/previa', [LaboratorioCriarLaudoOnlineController::class, 'previsualizarPdf'])
+    ->name('laboratorio.criar-laudo-online.pdf.previa')->middleware('auth');
+
+Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/enviar-resptec', [LaboratorioCriarLaudoOnlineController::class, 'enviarRespTec'])
+    ->name('laboratorio.criar-laudo-online.enviar-resptec')->middleware('auth');
+
+Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/pdf', [LaboratorioCriarLaudoOnlineController::class, 'baixarPdf'])
+    ->name('laboratorio.criar-laudo-online.pdf')->middleware('auth');
 
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');

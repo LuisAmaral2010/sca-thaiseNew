@@ -9,8 +9,10 @@ use App\Models\OrdemServico;
 use App\Models\FracaoAmostra;
 use App\Models\Servico; // se você tiver um modelo Servico para buscar unidade por serviço
 use App\Models\ExecucaoAnalise;
+use App\Models\ClienteExterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SolicitacaoServicoController extends Controller
 {
@@ -140,9 +142,19 @@ class SolicitacaoServicoController extends Controller
     {
         //$message = "Cheguei Aqui!";
         //dd($message);
+
+        // Requisição externa (formulário do CRA em
+        // /cra/solicitacoes_servicos_externos/create): sem atividade e com um
+        // cliente externo cadastrado (e ativo)
+        $externo = $request->routeIs('cra.solicitacoes_servicos_externos.store');
+
         // 1) VALIDAÇÃO
         $request->validate([
-            'atividade_id' => ['required', 'integer'],
+            'atividade_id' => $externo ? ['prohibited'] : ['required', 'integer'],
+            'cliente_externo_id' => $externo
+                ? ['required', 'integer', Rule::exists('cliente_externo', 'cliente_externo_id')->where('is_ativo', true)]
+                : ['prohibited'],
+            'solicitante_externo_nome' => ['prohibited'],
             'descricao' => ['required', 'string'],
             'amostras' => ['nullable', 'array'],
             'amostras..descricao' => ['nullable', 'string'],
@@ -176,8 +188,13 @@ class SolicitacaoServicoController extends Controller
             $solicitacao = SolicitacaoServico::create([
                 'descricao' => $request->input('descricao'),
                 'data_solicitacao' => $now,
-                'atividade_id' => $request->input('atividade_id'),
+                'atividade_id' => $externo ? null : $request->input('atividade_id'),
                 'solicitante_matricula' => $matricula,
+                // O nome do cliente fica gravado como estava no momento da requisição
+                'cliente_externo_id' => $externo ? $request->integer('cliente_externo_id') : null,
+                'solicitante_externo_nome' => $externo
+                    ? ClienteExterno::whereKey($request->integer('cliente_externo_id'))->value('nome')
+                    : null,
                 'status' => 'CRIADO',
                 'created_at' => $now,
                 'updated_at' => $now,

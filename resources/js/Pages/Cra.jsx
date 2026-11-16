@@ -1,10 +1,13 @@
 import { Head, Link } from '@inertiajs/react';
-import { ClipboardListIcon, FileTextIcon, FlaskConicalIcon, ShieldIcon } from 'lucide-react';
+import { ClipboardListIcon, FilePlusIcon, FileTextIcon, FlaskConicalIcon, ListIcon, ShieldIcon, UsersIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
 const funcionalidades = [
     { titulo: 'Receber amostra', icon: ClipboardListIcon, href: route('cra.receber-amostra.index') },
+    { titulo: 'Listar Requisições', icon: ListIcon, href: route('cra.listar_solicitacoes_servicos.index') },
+    { titulo: 'Cadastrar Requisição Externa', icon: FilePlusIcon, href: route('cra.solicitacoes_servicos_externos.create') },
+    { titulo: 'Clientes Externos', icon: UsersIcon, href: route('clientes_externos.index') },
     { titulo: 'Gerar laudo PDF', icon: FileTextIcon },
     { titulo: 'Gerenciar lista de laboratórios', icon: FlaskConicalIcon },
     { titulo: 'Gerenciar permissões de acesso', icon: ShieldIcon },

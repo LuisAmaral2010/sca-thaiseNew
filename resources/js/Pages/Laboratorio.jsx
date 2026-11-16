@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ClipboardListIcon, FileTextIcon, SaveIcon } from 'lucide-react';
+import { ClipboardListIcon, FilePenLineIcon, FileTextIcon, SaveIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -7,6 +7,7 @@ const funcionalidades = [
     { titulo: 'Aceitar amostra', icon: ClipboardListIcon, href: route('laboratorio.aceitar-amostra') },
     { titulo: 'Criar prévia do laudo', icon: FileTextIcon, href: route('laboratorio.emitir-laudo') },
     { titulo: 'Gravar laudo', icon: SaveIcon, href: route('laboratorio.gravar-laudo') },
+    { titulo: 'Criar Laudo Online', icon: FilePenLineIcon, href: route('laboratorio.criar-laudo-online') },
 ];
 
 export default function Laboratorio() {

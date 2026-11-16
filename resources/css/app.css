@@ -128,3 +128,70 @@
     @apply font-sans;
     }
 }
+/* Editor de resultados do laudo online (TipTap) — resources/js/components/EditorResultado.jsx */
+@layer components {
+  .editor-resultado-conteudo {
+    @apply min-h-32 px-3 py-2 text-sm outline-none;
+  }
+  .editor-resultado-conteudo > * + * {
+    @apply mt-2;
+  }
+  .editor-resultado-conteudo h2 {
+    @apply text-base font-semibold;
+  }
+  .editor-resultado-conteudo h3,
+  .editor-resultado-conteudo h4 {
+    @apply text-sm font-semibold;
+  }
+  .editor-resultado-conteudo ul {
+    @apply list-disc pl-6;
+  }
+  .editor-resultado-conteudo ol {
+    @apply list-decimal pl-6;
+  }
+  .editor-resultado-conteudo blockquote {
+    @apply border-l-2 pl-3 text-muted-foreground;
+  }
+  .editor-resultado-conteudo hr {
+    @apply my-3 border-border;
+  }
+  .editor-resultado-conteudo img {
+    @apply h-auto max-w-full rounded-md;
+  }
+  .editor-resultado-conteudo img.ProseMirror-selectednode {
+    @apply ring-2 ring-ring;
+  }
+  .editor-resultado-conteudo p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    content: attr(data-placeholder);
+  }
+
+  /* Tabelas */
+  .editor-resultado .tableWrapper {
+    @apply my-2 overflow-x-auto;
+  }
+  .editor-resultado-conteudo table {
+    @apply w-full table-fixed border-collapse;
+  }
+  .editor-resultado-conteudo th,
+  .editor-resultado-conteudo td {
+    @apply relative min-w-16 border border-border px-2 py-1 align-top;
+  }
+  .editor-resultado-conteudo th {
+    @apply bg-muted text-left font-semibold;
+  }
+  .editor-resultado-conteudo th > p,
+  .editor-resultado-conteudo td > p {
+    @apply m-0;
+  }
+  .editor-resultado-conteudo .selectedCell::after {
+    @apply pointer-events-none absolute inset-0 bg-primary/10;
+    content: '';
+  }
+  .editor-resultado-conteudo .column-resize-handle {
+    @apply pointer-events-none absolute top-0 -right-0.5 -bottom-px w-1 bg-primary;
+  }
+  .editor-resultado-conteudo.resize-cursor {
+    cursor: col-resize;
+  }
+}

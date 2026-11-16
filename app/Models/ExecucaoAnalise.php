@@ -20,6 +20,7 @@ class ExecucaoAnalise extends Model
         'laudo_id',
         'ordem_servico_id',
         'servico_id',
+        'resultado',
         'is_concluido',
         'data_conclusao',
         'is_cancelado',
