@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -119,6 +120,60 @@ class LaboratorioCriarLaudoOnlineController extends Controller
             'unidadesOperacionais' => $unidadesOperacionais,
             'filtros' => $request->only(['data_inicial', 'data_final', 'unidade_operacional_id']),
             'ordens' => $ordens,
+        ]);
+    }
+
+    // Página aberta pelo botão "Preencher laudo": mesmas duas primeiras
+    // tabelas de /solicitacoes_servicos/{id} (dados da solicitação e
+    // amostras x unidades operacionais / serviços), restritas às frações
+    // desta ordem de serviço
+    public function resumo(OrdemServico $ordem_servico)
+    {
+        $this->autorizar($ordem_servico);
+
+        $ordem_servico->load([
+            'solicitacaoServico.atividade',
+            'solicitacaoServico.empregado',
+            'unidadeOperacional',
+            'fracoesAmostra.amostra',
+            'fracoesAmostra.execucoes_analises.servico',
+        ]);
+
+        $unidade = $ordem_servico->unidadeOperacional?->nome
+            ?? 'Unidade ' . $ordem_servico->unidade_operacional_id;
+
+        $resumo = $ordem_servico->fracoesAmostra
+            ->sortBy('fracao_amostra_id')
+            ->groupBy('amostra_id')
+            ->sortKeys()
+            ->map(function ($fracoes) use ($unidade) {
+                $amostra = $fracoes->first()->amostra;
+
+                $fracoes = $fracoes->values()->map(fn (FracaoAmostra $fracao) => [
+                    'status' => $fracao->status_atual,
+                    'unidade' => $unidade,
+                    'servicos' => $fracao->execucoes_analises
+                        ->filter(fn ($execucao) => $execucao->servico)
+                        ->map(fn ($execucao) => [
+                            'execucao_analise_id' => $execucao->execucao_analise_id,
+                            'descricao' => $execucao->servico->descricao,
+                            'tipo' => $execucao->servico->tipo_servico,
+                        ])
+                        ->values(),
+                ]);
+
+                return [
+                    'amostra' => $amostra,
+                    'fracoes' => $fracoes,
+                    'total_linhas' => max(1, $fracoes->sum(fn ($fracao) => max(1, $fracao['servicos']->count()))),
+                ];
+            })
+            ->values();
+
+        return view('laboratorio.criar_laudo_online_resumo', [
+            'ordem' => $ordem_servico,
+            'solicitacao' => $ordem_servico->solicitacaoServico,
+            'resumo' => $resumo,
         ]);
     }
 
@@ -420,10 +475,19 @@ class LaboratorioCriarLaudoOnlineController extends Controller
 
         $solicitacao = $ordem_servico->solicitacaoServico;
 
-        $pdf = Pdf::loadView('pdf.laudo_online', [
+        // O dompdf guarda em storage/fonts as métricas das fontes do
+        // @font-face (Carlito e Arimo, em resources/fonts)
+        File::ensureDirectoryExists(storage_path('fonts'));
+
+        $pdf = Pdf::setOption([
+            // Embute no PDF só os caracteres usados, não as fontes inteiras
+            'isFontSubsettingEnabled' => true,
+        ])->loadView('pdf.laudo_online', [
             'previa' => $previa,
             'numeroLaudo' => $numeroLaudo,
+            'fontes' => str_replace('\\', '/', resource_path('fonts')),
             'logo' => 'data:image/jpeg;base64,' . base64_encode(file_get_contents(resource_path('images/laudo_online_logo.jpg'))),
+            'marcaDagua' => 'data:image/jpeg;base64,' . base64_encode(file_get_contents(resource_path('images/laudo_online_marca_dagua.jpg'))),
             'ordem' => [
                 'solicitante' => $solicitacao->empregado->nome ?? $solicitacao->solicitante_externo_nome ?? null,
                 'atividade' => $solicitacao->atividade->titulo ?? null,
@@ -440,12 +504,13 @@ class LaboratorioCriarLaudoOnlineController extends Controller
             'dataExtenso' => now()->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y'),
         ])->setPaper('a4');
 
-        // "Página X de Y" no cabeçalho de todas as páginas
+        // "Página X de Y" na célula superior direita do cabeçalho, em todas
+        // as páginas (Calibri/Carlito 8pt, como no modelo)
         $pdf->render();
         $dompdf = $pdf->getDomPDF();
         $canvas = $dompdf->getCanvas();
-        $fonte = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
-        $canvas->page_text($canvas->get_width() - 170, 62, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fonte, 9);
+        $fonte = $dompdf->getFontMetrics()->getFont('Carlito') ?? $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $canvas->page_text(470.5, 35.5, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fonte, 8);
 
         return $pdf->output();
     }

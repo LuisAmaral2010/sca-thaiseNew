@@ -7,6 +7,7 @@ use App\Models\Amostra;
 use App\Models\UnidadeOperacional;
 use App\Models\OrdemServico;
 use App\Models\FracaoAmostra;
+use App\Models\FracaoAmostraServico;
 use App\Models\Servico; // se você tiver um modelo Servico para buscar unidade por serviço
 use App\Models\ExecucaoAnalise;
 use App\Models\ClienteExterno;
@@ -308,6 +309,14 @@ class SolicitacaoServicoController extends Controller
                         'observacao' => null,
                         'created_at' => $now,
                         'updated_at' => $now,
+                    ]);
+
+                    // Serviço da fração, ainda sem laudo criado
+                    FracaoAmostraServico::firstOrCreate([
+                        'fracao_amostra_id' => $fracaoPorOrdem[$ordemId]->fracao_amostra_id,
+                        'servico_id' => $servicoId,
+                    ], [
+                        'laudo_criado' => false,
                     ]);
                 }
             }

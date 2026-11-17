@@ -374,6 +374,10 @@ Route::post('/laboratorio/gravar-laudo/{laudo}', [LaboratorioGravarLaudoControll
 Route::get('/laboratorio/criar-laudo-online', [LaboratorioCriarLaudoOnlineController::class, 'index'])
     ->name('laboratorio.criar-laudo-online')->middleware('auth');
 
+// Resumo da solicitação (dados + amostras x serviços) aberto pelo botão "Preencher laudo"
+Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/resumo', [LaboratorioCriarLaudoOnlineController::class, 'resumo'])
+    ->name('laboratorio.criar-laudo-online.resumo')->middleware('auth');
+
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'show'])
     ->name('laboratorio.criar-laudo-online.show')->middleware('auth');
 

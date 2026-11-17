@@ -23,7 +23,8 @@ function BotaoPreencher({ ordem, className = '' }) {
         <Button
             size="sm"
             className={className}
-            render={<Link href={route('laboratorio.criar-laudo-online.show', ordem.ordem_servico_id)} />}
+            // Página Blade (não Inertia): navegação completa com <a>
+            render={<a href={route('laboratorio.criar-laudo-online.resumo', ordem.ordem_servico_id)} />}
         >
             Preencher laudo
         </Button>
