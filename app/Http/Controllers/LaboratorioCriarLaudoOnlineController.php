@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ArquivoLaboratorio;
 use App\Models\ExecucaoAnalise;
 use App\Models\FracaoAmostra;
+use App\Models\FracaoAmostraServico;
 use App\Models\Laudo;
 use App\Models\OrdemServico;
 use App\Models\PermissaoUnidadeOperacional;
@@ -177,6 +178,67 @@ class LaboratorioCriarLaudoOnlineController extends Controller
         ]);
     }
 
+    // Botão "Preencher resultados" da página de resumo: marca
+    // fracao_amostra_servico.laudo_criado = true para as linhas (fração +
+    // serviço) selecionadas, false para as desmarcadas, e abre o editor só
+    // com as selecionadas. Só aceita
+    // execucao_analise pertencentes às frações desta ordem.
+    public function selecionar(Request $request, OrdemServico $ordem_servico)
+    {
+        $this->autorizar($ordem_servico);
+
+        abort_unless(in_array($ordem_servico->status_atual, self::STATUS_EDITAVEIS), 403);
+
+        $execucoesDaOrdem = ExecucaoAnalise::query()
+            ->whereIn('fracao_amostra_id', $ordem_servico->fracoesAmostra()->pluck('fracao_amostra_id'))
+            ->pluck('execucao_analise_id')
+            ->all();
+
+        $validated = $request->validate([
+            'execucoes_analises' => ['required', 'array', 'min:1'],
+            'execucoes_analises.*' => ['integer', Rule::in($execucoesDaOrdem)],
+        ], [
+            'execucoes_analises.required' => 'Marcar pelo menos uma das Frações Amostra',
+            'execucoes_analises.min' => 'Marcar pelo menos uma das Frações Amostra',
+            'execucoes_analises.*.in' => 'Análise inválida para esta ordem de serviço.',
+        ]);
+
+        // Todas as linhas (fração + serviço) da ordem: marcadas ficam com
+        // laudo_criado = true, desmarcadas com false
+        $marcadas = array_map('intval', $validated['execucoes_analises']);
+
+        $linhas = ExecucaoAnalise::whereIn('execucao_analise_id', $execucoesDaOrdem)
+            ->whereNotNull('servico_id')
+            ->get(['execucao_analise_id', 'fracao_amostra_id', 'servico_id'])
+            ->groupBy(fn ($execucao) => $execucao->fracao_amostra_id . '-' . $execucao->servico_id);
+
+        DB::transaction(function () use ($linhas, $marcadas) {
+            foreach ($linhas as $execucoes) {
+                // updateOrCreate: solicitações anteriores à tabela
+                // fracao_amostra_servico ainda não têm o registro
+                FracaoAmostraServico::updateOrCreate([
+                    'fracao_amostra_id' => $execucoes->first()->fracao_amostra_id,
+                    'servico_id' => $execucoes->first()->servico_id,
+                ], [
+                    'laudo_criado' => $execucoes->contains(fn ($execucao) => in_array($execucao->execucao_analise_id, $marcadas, true)),
+                ]);
+            }
+        });
+
+        return redirect()->route('laboratorio.criar-laudo-online.show', $ordem_servico->ordem_servico_id);
+    }
+
+    // Chaves "fracao_amostra_id-servico_id" desta ordem com laudo_criado = true
+    private function chavesFracaoServicoSelecionadas(OrdemServico $ordem_servico): array
+    {
+        return FracaoAmostraServico::query()
+            ->whereIn('fracao_amostra_id', $ordem_servico->fracoesAmostra->pluck('fracao_amostra_id'))
+            ->where('laudo_criado', true)
+            ->get(['fracao_amostra_id', 'servico_id'])
+            ->mapWithKeys(fn ($registro) => [$registro->fracao_amostra_id . '-' . $registro->servico_id => true])
+            ->all();
+    }
+
     // Formulário com os dados da ordem de serviço e um campo de resultado
     // para cada análise (execucao_analise) de cada amostra
     public function show(OrdemServico $ordem_servico)
@@ -198,9 +260,13 @@ class LaboratorioCriarLaudoOnlineController extends Controller
 
         $temPdf = $laudo && ArquivoLaboratorio::where('laudo_id', $laudo->laudo_id)->exists();
 
+        // Só aparecem as análises das frações selecionadas na página de
+        // resumo (fracao_amostra_servico.laudo_criado = true)
+        $selecionadas = $this->chavesFracaoServicoSelecionadas($ordem_servico);
+
         $amostras = $ordem_servico->fracoesAmostra
             ->groupBy('amostra_id')
-            ->map(function ($fracoes) {
+            ->map(function ($fracoes) use ($selecionadas) {
                 $amostra = $fracoes->first()->amostra;
 
                 return [
@@ -210,6 +276,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                     'analises' => $fracoes
                         ->flatMap->execucoes_analises
                         ->reject(fn ($execucao) => (bool) $execucao->is_cancelado)
+                        ->filter(fn ($execucao) => isset($selecionadas[$execucao->fracao_amostra_id . '-' . $execucao->servico_id]))
                         ->map(fn ($execucao) => [
                             'execucao_analise_id' => $execucao->execucao_analise_id,
                             'servico' => $execucao->servico->descricao ?? null,
@@ -218,6 +285,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                         ->values(),
                 ];
             })
+            ->filter(fn ($amostra) => $amostra['analises']->isNotEmpty())
             ->values();
 
         return Inertia::render('Laboratorio/CriarLaudoOnlineShow', [

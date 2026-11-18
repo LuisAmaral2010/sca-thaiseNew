@@ -125,7 +125,7 @@ export default function CriarLaudoOnlineShow({ ordem, amostras }) {
 
                             {totalAnalises === 0 ? (
                                 <p className="text-sm text-muted-foreground">
-                                    Nenhuma análise cadastrada para esta ordem de serviço.
+                                    Nenhuma fração amostra selecionada para preenchimento nesta ordem de serviço.
                                 </p>
                             ) : (
                                 <div className="flex flex-col gap-4">

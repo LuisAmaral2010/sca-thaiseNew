@@ -19,7 +19,12 @@
 
 <x-alert />
 
-<div class="modal-content mb-4">
+{{-- As linhas marcadas vão para selecionar(): laudo_criado = true e abre o editor só com elas --}}
+<form method="POST"
+      action="{{ route('laboratorio.criar-laudo-online.selecionar', $ordem->ordem_servico_id) }}"
+      id="formSelecao"
+      class="modal-content mb-4">
+    @csrf
 
     <div class="modal-header">
         <h5 class="modal-title">
@@ -164,17 +169,84 @@
                 </div>
             </div>
         </div>
+
+        {{-- Toggle switch abaixo das tabelas --}}
+        <div class="mt-3 d-flex align-items-center gap-2">
+            <label for="discriminar_fracao_amostra" class="mb-0" style="cursor: pointer;">Discriminar Fração Amostra</label>
+            <label class="switch">
+                <input type="checkbox" id="discriminar_fracao_amostra" name="discriminar_fracao_amostra" value="1" role="switch" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
     </div>
 
     <div class="modal-footer">
         <a href="{{ route('laboratorio.criar-laudo-online', ['unidade_operacional_id' => $ordem->unidade_operacional_id]) }}"
            class="sca-btn sca-btn--outline">Voltar</a>
 
-        <a href="{{ route('laboratorio.criar-laudo-online.show', $ordem->ordem_servico_id) }}"
-           class="sca-btn sca-btn--primary">Preencher resultados</a>
+        <button type="submit" class="sca-btn sca-btn--primary">Preencher resultados</button>
     </div>
 
-</div>
+</form>
+
+<style>
+    /* Toggle switch: <label class="switch"><input type="checkbox"><span class="slider round"></span></label> */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        margin: 0;
+        vertical-align: middle;
+    }
+    .switch input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        inset: 0;
+        cursor: pointer;
+        background-color: var(--sca-border, #ccc);
+        transition: background-color 0.2s;
+    }
+    .slider::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        bottom: 3px;
+        width: 18px;
+        height: 18px;
+        background-color: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s;
+    }
+    .switch input:checked + .slider {
+        background-color: var(--sca-primary, #2196f3);
+    }
+    .switch input:checked + .slider::before {
+        transform: translateX(20px);
+    }
+    .switch input:focus-visible + .slider {
+        outline: 2px solid var(--sca-primary, #2196f3);
+        outline-offset: 2px;
+    }
+    .switch input:disabled + .slider {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .slider.round {
+        border-radius: 24px;
+    }
+    .slider.round::before {
+        border-radius: 50%;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .slider, .slider::before { transition: none; }
+    }
+</style>
 
 <script>
 (function () {
@@ -182,6 +254,14 @@
     // e fica indeterminado quando só parte delas está marcada
     const todas = document.getElementById('selecionarTodas');
     const linhas = [...document.querySelectorAll('[data-selecao-linha]:not(:disabled)')];
+
+    // "Preencher resultados" só segue com pelo menos uma linha marcada
+    document.getElementById('formSelecao').addEventListener('submit', e => {
+        if (!linhas.some(c => c.checked)) {
+            e.preventDefault();
+            alert('Marcar pelo menos uma das Frações Amostra');
+        }
+    });
 
     if (!linhas.length) {
         todas.disabled = true;

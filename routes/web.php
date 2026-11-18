@@ -378,6 +378,10 @@ Route::get('/laboratorio/criar-laudo-online', [LaboratorioCriarLaudoOnlineContro
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/resumo', [LaboratorioCriarLaudoOnlineController::class, 'resumo'])
     ->name('laboratorio.criar-laudo-online.resumo')->middleware('auth');
 
+// "Preencher resultados" do resumo: marca as frações selecionadas (laudo_criado) e abre o editor
+Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/resumo', [LaboratorioCriarLaudoOnlineController::class, 'selecionar'])
+    ->name('laboratorio.criar-laudo-online.selecionar')->middleware('auth');
+
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'show'])
     ->name('laboratorio.criar-laudo-online.show')->middleware('auth');
 
