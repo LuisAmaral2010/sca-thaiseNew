@@ -152,6 +152,7 @@
                                                    data-selecao-linha
                                                    value="{{ $servico['execucao_analise_id'] ?? '' }}"
                                                    aria-label="Selecionar {{ $servico['descricao'] ?? 'linha' }}"
+                                                   @checked($servico['marcada'] ?? false)
                                                    @disabled(!$servico)>
                                         </td>
                                     </tr>

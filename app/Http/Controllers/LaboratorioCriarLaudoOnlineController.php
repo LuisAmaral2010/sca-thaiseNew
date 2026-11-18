@@ -143,11 +143,14 @@ class LaboratorioCriarLaudoOnlineController extends Controller
         $unidade = $ordem_servico->unidadeOperacional?->nome
             ?? 'Unidade ' . $ordem_servico->unidade_operacional_id;
 
+        // Linhas (fração + serviço) já com laudo_criado = true vêm marcadas
+        $selecionadas = $this->chavesFracaoServicoSelecionadas($ordem_servico);
+
         $resumo = $ordem_servico->fracoesAmostra
             ->sortBy('fracao_amostra_id')
             ->groupBy('amostra_id')
             ->sortKeys()
-            ->map(function ($fracoes) use ($unidade) {
+            ->map(function ($fracoes) use ($unidade, $selecionadas) {
                 $amostra = $fracoes->first()->amostra;
 
                 $fracoes = $fracoes->values()->map(fn (FracaoAmostra $fracao) => [
@@ -159,6 +162,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                             'execucao_analise_id' => $execucao->execucao_analise_id,
                             'descricao' => $execucao->servico->descricao,
                             'tipo' => $execucao->servico->tipo_servico,
+                            'marcada' => isset($selecionadas[$execucao->fracao_amostra_id . '-' . $execucao->servico_id]),
                         ])
                         ->values(),
                 ]);
