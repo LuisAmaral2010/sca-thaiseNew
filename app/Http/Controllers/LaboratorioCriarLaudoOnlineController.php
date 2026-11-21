@@ -182,6 +182,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
 
         return view('laboratorio.criar_laudo_online_resumo', [
             'ordem' => $ordem_servico,
+            'discriminar' => $ordem_servico->discriminar_fracao_amostra ?? true,
             'solicitacao' => $ordem_servico->solicitacaoServico,
             'resumo' => $resumo,
         ]);
@@ -206,6 +207,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
         $validated = $request->validate([
             'execucoes_analises' => ['required', 'array', 'min:1'],
             'execucoes_analises.*' => ['integer', Rule::in($execucoesDaOrdem)],
+            'discriminar_fracao_amostra' => ['nullable', 'boolean'],
         ], [
             'execucoes_analises.required' => 'Marcar pelo menos uma das Frações Amostra',
             'execucoes_analises.min' => 'Marcar pelo menos uma das Frações Amostra',
@@ -216,12 +218,18 @@ class LaboratorioCriarLaudoOnlineController extends Controller
         // laudo_criado = true, desmarcadas com false
         $marcadas = array_map('intval', $validated['execucoes_analises']);
 
+        // Toggle "Discriminar Fração Amostra": desligado = um único campo de
+        // resultado no editor (ordem_servico.resultado_unico)
+        $discriminar = $request->boolean('discriminar_fracao_amostra');
+
         $linhas = ExecucaoAnalise::whereIn('execucao_analise_id', $execucoesDaOrdem)
             ->whereNotNull('servico_id')
             ->get(['execucao_analise_id', 'fracao_amostra_id', 'servico_id'])
             ->groupBy(fn ($execucao) => $execucao->fracao_amostra_id . '-' . $execucao->servico_id);
 
-        DB::transaction(function () use ($linhas, $marcadas, $ordem_servico) {
+        DB::transaction(function () use ($linhas, $marcadas, $ordem_servico, $discriminar) {
+            $ordem_servico->update(['discriminar_fracao_amostra' => $discriminar]);
+
             foreach ($linhas as $execucoes) {
                 // updateOrCreate: solicitações anteriores à tabela
                 // fracao_amostra_servico ainda não têm o registro
@@ -328,6 +336,8 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                 'data_aceite_laboratorio' => $ordem_servico->data_aceite_laboratorio,
                 'editavel' => in_array($ordem_servico->status_atual, self::STATUS_EDITAVEIS),
                 'tem_pdf' => $temPdf,
+                'discriminar_fracao_amostra' => $ordem_servico->discriminar_fracao_amostra,
+                'resultado_unico' => $ordem_servico->resultado_unico,
             ],
             'amostras' => $amostras,
         ]);
@@ -340,6 +350,21 @@ class LaboratorioCriarLaudoOnlineController extends Controller
         $this->autorizar($ordem_servico);
 
         abort_unless(in_array($ordem_servico->status_atual, self::STATUS_EDITAVEIS), 403);
+
+        // "Discriminar Fração Amostra" desligado: um único resultado para a ordem
+        if (!$ordem_servico->discriminar_fracao_amostra) {
+            $validated = $request->validate([
+                'resultado_unico' => ['nullable', 'string', 'max:' . ResultadoLaudoHtml::TAMANHO_MAXIMO],
+            ], [
+                'resultado_unico.max' => 'O conteúdo do resultado é grande demais.',
+            ]);
+
+            $ordem_servico->update([
+                'resultado_unico' => ResultadoLaudoHtml::sanitizar($validated['resultado_unico'] ?? null),
+            ]);
+
+            return back()->with('success', "Resultado da ordem de serviço #{$ordem_servico->ordem_servico_id} gravado com sucesso.");
+        }
 
         $execucoesDaOrdem = ExecucaoAnalise::query()
             ->whereIn('fracao_amostra_id', $ordem_servico->fracoesAmostra()->pluck('fracao_amostra_id'))
@@ -448,7 +473,15 @@ class LaboratorioCriarLaudoOnlineController extends Controller
             return back()->with('error', 'Esta ordem de serviço não tem análises para gerar o laudo.');
         }
 
-        $pendentes = $execucoes->filter(fn ($execucao) => ResultadoLaudoHtml::vazio($execucao->resultado))->count();
+        if (!$ordem_servico->discriminar_fracao_amostra) {
+            if (ResultadoLaudoHtml::vazio($ordem_servico->resultado_unico)) {
+                return back()->with('error', 'Preencha e grave o resultado antes de gerar o laudo.');
+            }
+
+            $pendentes = 0;
+        } else {
+            $pendentes = $execucoes->filter(fn ($execucao) => ResultadoLaudoHtml::vazio($execucao->resultado))->count();
+        }
 
         if ($pendentes > 0) {
             return back()->with('error', "Preencha e grave o resultado de todas as análises antes de gerar o laudo ({$pendentes} pendente(s)).");
@@ -595,6 +628,14 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                 'unidade_operacional' => $ordem_servico->unidadeOperacional->nome ?? null,
             ],
             'amostras' => $amostras,
+            // "Discriminar Fração Amostra" desligado: um único resultado depois das amostras
+            'discriminar' => (bool) $ordem_servico->discriminar_fracao_amostra,
+            'resultadoUnico' => $ordem_servico->discriminar_fracao_amostra
+                ? null
+                : $this->embutirImagens(
+                    ResultadoLaudoHtml::sanitizar($ordem_servico->resultado_unico) ?? '',
+                    $ordem_servico->ordem_servico_id
+                ),
             'respTec' => auth()->user()?->empregado?->nome,
             'dataExtenso' => now()->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y'),
         ])->setPaper('a4');

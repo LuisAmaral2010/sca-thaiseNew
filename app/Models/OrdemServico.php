@@ -24,6 +24,12 @@ class OrdemServico extends Model
         'solicitacao_servico_id',
         'unidade_operacional_id',
         'data_aceite_laboratorio',
+        'discriminar_fracao_amostra',
+        'resultado_unico',
+    ];
+
+    protected $casts = [
+        'discriminar_fracao_amostra' => 'boolean',
     ];
 
     public function fracaoAmostra(): BelongsTo

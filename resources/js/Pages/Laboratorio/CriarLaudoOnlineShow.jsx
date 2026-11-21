@@ -34,6 +34,10 @@ export default function CriarLaudoOnlineShow({ ordem, amostras }) {
     const [alterado, setAlterado] = useState(false);
     const [enviando, setEnviando] = useState(false);
 
+    // Toggle "Discriminar Fração Amostra" do resumo: desligado = um único
+    // campo de resultado para todas as frações (ordem_servico.resultado_unico)
+    const discriminar = ordem.discriminar_fracao_amostra !== false;
+
     const { data, setData, post, processing, errors } = useForm({
         resultados: amostras.flatMap((amostra) =>
             amostra.analises.map((analise) => ({
@@ -41,6 +45,7 @@ export default function CriarLaudoOnlineShow({ ordem, amostras }) {
                 resultado: analise.resultado ?? '',
             }))
         ),
+        resultado_unico: ordem.resultado_unico ?? '',
     });
 
     // Posição de cada análise no array "resultados" (para ligar o input ao estado e ao erro)
@@ -58,6 +63,11 @@ export default function CriarLaudoOnlineShow({ ordem, amostras }) {
                 item.execucao_analise_id === execucaoAnaliseId ? { ...item, resultado: valor } : item
             ),
         }));
+    }
+
+    function alterarResultadoUnico(valor) {
+        setAlterado(true);
+        setData((atual) => ({ ...atual, resultado_unico: valor }));
     }
 
     function submit(e) {
@@ -127,6 +137,41 @@ export default function CriarLaudoOnlineShow({ ordem, amostras }) {
                                 <p className="text-sm text-muted-foreground">
                                     Nenhuma fração amostra selecionada para preenchimento nesta ordem de serviço.
                                 </p>
+                            ) : !discriminar ? (
+                                <div className="rounded-lg border">
+                                    <div className="divide-y border-b">
+                                        {amostras.map((amostra) => (
+                                            <div key={amostra.amostra_id ?? 'sem-amostra'} className="px-3 py-2 text-sm">
+                                                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                                    <span className="font-medium break-words">
+                                                        {amostra.descricao ?? 'Amostra sem descrição'}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Nº CRA: {amostra.numero_cra ?? '—'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-muted-foreground">
+                                                    {amostra.analises.map((analise) => analise.servico ?? 'Análise').join(', ')}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Field className="flex flex-col gap-2 px-3 py-3" data-invalid={!!errors.resultado_unico}>
+                                        <FieldLabel htmlFor="resultado_unico">Resultado</FieldLabel>
+                                        <EditorResultado
+                                            id="resultado_unico"
+                                            value={ordem.resultado_unico ?? ''}
+                                            disabled={!ordem.editavel}
+                                            invalido={!!errors.resultado_unico}
+                                            urlEnvioImagem={route(
+                                                'laboratorio.criar-laudo-online.imagem.enviar',
+                                                ordem.ordem_servico_id
+                                            )}
+                                            onChange={alterarResultadoUnico}
+                                        />
+                                        {errors.resultado_unico && <FieldError>{errors.resultado_unico}</FieldError>}
+                                    </Field>
+                                </div>
                             ) : (
                                 <div className="flex flex-col gap-4">
                                     {amostras.map((amostra) => (

@@ -177,22 +177,18 @@
             padding-top: 16pt; /* parágrafo vazio antes da tabela no modelo */
         }
 
-        /* Linha "Resultado:" fora de tabela para o conteúdo rico poder
-           quebrar entre páginas */
+        /* "Resultado:" fora de tabela para o conteúdo rico poder quebrar
+           entre páginas. O resultado vem na linha de baixo do rótulo,
+           alinhado com ele (mesmo recuo de 5,4pt das células), sem indentação */
         .linha-resultado {
-            position: relative;
-            min-height: 16.5pt; /* altura da linha do rótulo, mesmo sem resultado */
-            padding-left: 136.15pt; /* coluna do rótulo + recuo do valor */
+            padding-left: 5.4pt;
             padding-right: 5.4pt;
         }
         .linha-resultado .rotulo {
-            position: absolute;
-            left: 5.4pt;
-            top: 0;
             line-height: 16.5px;
         }
         .linha-resultado .resultado {
-            padding-top: 2.5pt;
+            padding-top: 0;
             font-family: 'Arimo', sans-serif;
             font-size: 10pt;
             line-height: 13px;
@@ -330,14 +326,25 @@
                 <table class="dados">
                     <tr><td class="rotulo">Análise:</td><td class="valor">{{ $analise['servico'] ?? '' }}</td></tr>
                 </table>
-                <div class="linha-resultado">
-                    <div class="rotulo">Resultado:</div>
-                    {{-- HTML já sanitizado por ResultadoLaudoHtml::sanitizar --}}
-                    <div class="resultado">{!! $analise['html'] !!}</div>
-                </div>
+                @if ($discriminar ?? true)
+                    <div class="linha-resultado">
+                        <div class="rotulo">Resultado:</div>
+                        {{-- HTML já sanitizado por ResultadoLaudoHtml::sanitizar --}}
+                        <div class="resultado">{!! $analise['html'] !!}</div>
+                    </div>
+                @endif
             @endforeach
         </div>
     @endforeach
+    @unless ($discriminar ?? true)
+        {{-- "Discriminar Fração Amostra" desligado: um único resultado para todas as amostras --}}
+        <div class="amostra">
+            <div class="linha-resultado">
+                <div class="rotulo">Resultado:</div>
+                <div class="resultado">{!! $resultadoUnico !!}</div>
+            </div>
+        </div>
+    @endunless
     <div class="fim-resultados"></div>
 
     <div class="secao">OBSERVAÇÕES</div>

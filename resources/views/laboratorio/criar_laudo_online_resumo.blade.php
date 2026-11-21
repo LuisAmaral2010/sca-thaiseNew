@@ -175,7 +175,9 @@
         <div class="mt-3 d-flex align-items-center gap-2">
             <label for="discriminar_fracao_amostra" class="mb-0" style="cursor: pointer;">Discriminar Fração Amostra</label>
             <label class="switch">
-                <input type="checkbox" id="discriminar_fracao_amostra" name="discriminar_fracao_amostra" value="1" role="switch" checked>
+                {{-- Desligado: o editor terá um único campo de resultado para todas as frações --}}
+                <input type="hidden" name="discriminar_fracao_amostra" value="0">
+                <input type="checkbox" id="discriminar_fracao_amostra" name="discriminar_fracao_amostra" value="1" role="switch" @checked($discriminar)>
                 <span class="slider round"></span>
             </label>
         </div>
