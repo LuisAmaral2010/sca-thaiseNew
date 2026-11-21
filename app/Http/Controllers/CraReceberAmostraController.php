@@ -47,7 +47,7 @@ class CraReceberAmostraController extends Controller
             ->withCount(['ordemServico as ordens_rejeitadas_count' => function ($query) {
                 $query->where('status_atual', 'REJEITADO_CRA');
             }])
-            ->orderBy('data_solicitacao')
+            ->orderByDesc('solicitacao_servico_id')
             ->get();
 
         return Inertia::render('Cra/ReceberAmostra/Index', compact('solicitacoes'));
