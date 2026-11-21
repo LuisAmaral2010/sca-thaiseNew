@@ -27,10 +27,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 function useNavItems() {
+    const { can } = usePage().props.auth ?? {};
+
     return [
         { title: 'Dashboard', href: route('dashboard.index'), icon: LayoutDashboard, match: ['/dashboard'] },
-        { title: 'CRA', href: route('cra'), icon: Building2, match: ['/cra'] },
-        { title: 'Laboratório', href: route('laboratorio'), icon: FlaskConical, match: ['/laboratorio'] },
+        // Só para usuários USUARIO_CRA
+        can?.cra && { title: 'CRA', href: route('cra'), icon: Building2, match: ['/cra'] },
+        // Só para quem tem matrícula em permissao_unidade_operacional
+        can?.laboratorio && { title: 'Laboratório', href: route('laboratorio'), icon: FlaskConical, match: ['/laboratorio'] },
         { title: 'Resp Tec', href: route('resptec'), icon: UserCog, match: ['/resptec'] },
         {
             title: 'Solicitante',
@@ -39,7 +43,7 @@ function useNavItems() {
             match: ['/solicitacao', '/solicitacoes_servicos', '/solicitante'],
             inertia: false,
         },
-    ];
+    ].filter(Boolean);
 }
 
 function userInitials(name) {

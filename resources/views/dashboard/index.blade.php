@@ -9,6 +9,8 @@
         </div>
         
         <div class="row">
+          {{-- Só para usuários USUARIO_CRA --}}
+          @can('acessar-cra')
           <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0">
             <div class="icon-box" data-aos="fade-up" data-aos-delay="100">
               <div class="icon"><i class='bx bxs-institution'></i></div>
@@ -17,7 +19,10 @@
               <p class="description">Recebe amostra, gera laudo pdf, gerencia lista de laboratórios e gerencia permissões de acesso</p>
             </div>
           </div>
+          @endcan
 
+          {{-- Só para quem tem matrícula em permissao_unidade_operacional --}}
+          @can('acessar-laboratorio')
           <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0">
             <div class="icon-box" data-aos="fade-up" data-aos-delay="200">
               <div class="icon"><i class='bx bxs-flask'></i></div>
@@ -25,6 +30,7 @@
               <p class="description">Aceita amostra e emite laudo doc</p>
             </div>
           </div>
+          @endcan
 
           <div class="col-md-6 col-lg-3 d-flex align-items-stretch mb-5 mb-lg-0">
             <div class="icon-box" data-aos="fade-up" data-aos-delay="200">

@@ -49,6 +49,9 @@ class HandleInertiaRequests extends Middleware
                     'amostras' => [
                         'create' => fn () => $request->user()?->can('create', Amostra::class) ?? false,
                     ],
+                    // Exibem os links "CRA" e "Laboratório" no menu lateral
+                    'cra' => fn () => $request->user()?->can('acessar-cra') ?? false,
+                    'laboratorio' => fn () => $request->user()?->can('acessar-laboratorio') ?? false,
                 ],
             ],
             'flash' => [

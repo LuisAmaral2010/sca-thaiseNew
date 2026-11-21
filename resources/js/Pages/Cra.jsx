@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ClipboardListIcon, FilePlusIcon, FileTextIcon, FlaskConicalIcon, ListIcon, ShieldIcon, UsersIcon } from 'lucide-react';
+import { ClipboardListIcon, FilePlusIcon, FileTextIcon, FlaskConicalIcon, ListIcon, ShieldIcon, UserCircleIcon, UsersIcon } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -11,6 +11,7 @@ const funcionalidades = [
     { titulo: 'Gerar laudo PDF', icon: FileTextIcon },
     { titulo: 'Gerenciar lista de laboratórios', icon: FlaskConicalIcon },
     { titulo: 'Gerenciar permissões de acesso', icon: ShieldIcon },
+    { titulo: 'Perfil do CRA', icon: UserCircleIcon, href: route('cra.perfil.show') },
 ];
 
 export default function Cra() {

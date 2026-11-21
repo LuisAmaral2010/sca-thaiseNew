@@ -20,6 +20,7 @@ use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\UnidadeOperacionalController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ListaSolicitacaoServicoController;
+use App\Http\Controllers\CraPerfilController;
 use App\Http\Controllers\CraReceberAmostraController;
 use App\Http\Controllers\ResptecAprovarLaudoController;
 use App\Http\Controllers\PlanoAcaoController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\LaboratorioGravarLaudoController;
 use App\Http\Controllers\LaboratorioCriarLaudoOnlineController;
 
 use App\Models\ArquivoCRA;
+use App\Models\CraPerfil;
 use App\Models\ArquivoLaboratorio;
 use App\Models\Empregado;
 use App\Models\FracaoAmostra;
@@ -310,8 +312,9 @@ Route::prefix('user-statuses')->group(function () {
 });
 */
 
+// CRA (/cra e /cra/...): só usuários USUARIO_CRA (Gate acessar-cra)
 Route::get('/cra/listar_solicitacoes_servicos', [ListaSolicitacaoServicoController::class, 'index'])
-    ->name('cra.listar_solicitacoes_servicos.index')->middleware('auth');
+    ->name('cra.listar_solicitacoes_servicos.index')->middleware(['auth', 'can:acessar-cra']);
 
 // Endereços antigos da lista de solicitações, mantidos para links salvos
 Route::permanentRedirect('/listasolicitacaoservico', '/cra/listar_solicitacoes_servicos');
@@ -319,16 +322,26 @@ Route::permanentRedirect('/listar-solicitacoes-servicos', '/cra/listar_solicitac
 
 // Cadastro de requisição externa (CRA): mesmo formulário de
 // /solicitacoes_servicos/create, sem atividade
-Route::prefix('cra/solicitacoes_servicos_externos')->middleware('auth')->group(function () {
+Route::prefix('cra/solicitacoes_servicos_externos')->middleware(['auth', 'can:acessar-cra'])->group(function () {
     Route::get('/create', [SolicitacaoServicoExternoController::class, 'create'])->name('cra.solicitacoes_servicos_externos.create');
     Route::post('/store', [SolicitacaoServicoController::class, 'store'])->name('cra.solicitacoes_servicos_externos.store');
 });
 
 Route::get('/cra', function () {
     return Inertia::render('Cra');
-})->name('cra');
+})->name('cra')->middleware(['auth', 'can:acessar-cra']);
 
-Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
+// Perfil do CRA (tabela cra_perfil, registro único).
+// Só USUARIO_CRA; cadastro só enquanto não existe (CraPerfilPolicy)
+Route::prefix('cra/perfil')->middleware(['auth', 'can:acessar-cra'])->group(function () {
+    Route::get('/', [CraPerfilController::class, 'show'])->name('cra.perfil.show');
+    Route::get('/create', [CraPerfilController::class, 'create'])->name('cra.perfil.create')->can('create', CraPerfil::class);
+    Route::post('/', [CraPerfilController::class, 'store'])->name('cra.perfil.store');
+    Route::get('/edit', [CraPerfilController::class, 'edit'])->name('cra.perfil.edit');
+    Route::put('/', [CraPerfilController::class, 'update'])->name('cra.perfil.update');
+});
+
+Route::prefix('cra/receber-amostra')->middleware(['auth', 'can:acessar-cra'])->group(function () {
     Route::get('/', [CraReceberAmostraController::class, 'index'])->name('cra.receber-amostra.index');
     Route::get('/solicitacao/{solicitacao_servico}', [CraReceberAmostraController::class, 'ordens'])->name('cra.receber-amostra.ordens');
     Route::get('/solicitacao/{solicitacao_servico}/receber-todas', [CraReceberAmostraController::class, 'receberTodasForm'])->name('cra.receber-amostra.receber-todas');
@@ -343,66 +356,67 @@ Route::prefix('cra/receber-amostra')->middleware('auth')->group(function () {
     Route::post('/{ordem_servico}/rejeitar', [CraReceberAmostraController::class, 'rejeitar'])->name('cra.receber-amostra.rejeitar.store');
 });
 
+// Laboratório: só usuários com matrícula em permissao_unidade_operacional (Gate acessar-laboratorio)
 Route::get('/laboratorio', function () {
     return Inertia::render('Laboratorio');
-})->name('laboratorio');
+})->name('laboratorio')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/aceitar-amostra', [LaboratorioAceitarAmostraController::class, 'index'])
-    ->name('laboratorio.aceitar-amostra')->middleware('auth');
+    ->name('laboratorio.aceitar-amostra')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/aceitar-amostra/{ordem_servico}', [LaboratorioAceitarAmostraController::class, 'show'])
-    ->name('laboratorio.aceitar-amostra.show')->middleware('auth');
+    ->name('laboratorio.aceitar-amostra.show')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/aceitar-amostra/{ordem_servico}/aceitar', [LaboratorioAceitarAmostraController::class, 'aceitar'])
-    ->name('laboratorio.aceitar-amostra.aceitar')->middleware('auth');
+    ->name('laboratorio.aceitar-amostra.aceitar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/aceitar-amostra/{ordem_servico}/rejeitar', [LaboratorioAceitarAmostraController::class, 'rejeitar'])
-    ->name('laboratorio.aceitar-amostra.rejeitar')->middleware('auth');
+    ->name('laboratorio.aceitar-amostra.rejeitar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/emitir-laudo', [LaboratorioEmitirLaudoController::class, 'index'])
-    ->name('laboratorio.emitir-laudo')->middleware('auth');
+    ->name('laboratorio.emitir-laudo')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/emitir-laudo/{ordem_servico}/emitir', [LaboratorioEmitirLaudoController::class, 'emitir'])
-    ->name('laboratorio.emitir-laudo.emitir')->middleware('auth');
+    ->name('laboratorio.emitir-laudo.emitir')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/gravar-laudo', [LaboratorioGravarLaudoController::class, 'index'])
-    ->name('laboratorio.gravar-laudo')->middleware('auth');
+    ->name('laboratorio.gravar-laudo')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/gravar-laudo/{laudo}', [LaboratorioGravarLaudoController::class, 'gravar'])
-    ->name('laboratorio.gravar-laudo.gravar')->middleware('auth');
+    ->name('laboratorio.gravar-laudo.gravar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/criar-laudo-online', [LaboratorioCriarLaudoOnlineController::class, 'index'])
-    ->name('laboratorio.criar-laudo-online')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online')->middleware(['auth', 'can:acessar-laboratorio']);
 
 // Resumo da solicitação (dados + amostras x serviços) aberto pelo botão "Preencher laudo"
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/resumo', [LaboratorioCriarLaudoOnlineController::class, 'resumo'])
-    ->name('laboratorio.criar-laudo-online.resumo')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.resumo')->middleware(['auth', 'can:acessar-laboratorio']);
 
 // "Preencher resultados" do resumo: marca as frações selecionadas (laudo_criado) e abre o editor
 Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/resumo', [LaboratorioCriarLaudoOnlineController::class, 'selecionar'])
-    ->name('laboratorio.criar-laudo-online.selecionar')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.selecionar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'show'])
-    ->name('laboratorio.criar-laudo-online.show')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.show')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/criar-laudo-online/{ordem_servico}', [LaboratorioCriarLaudoOnlineController::class, 'gravar'])
-    ->name('laboratorio.criar-laudo-online.gravar')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.gravar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/imagens', [LaboratorioCriarLaudoOnlineController::class, 'enviarImagem'])
-    ->name('laboratorio.criar-laudo-online.imagem.enviar')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.imagem.enviar')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/imagens/{nome}', [LaboratorioCriarLaudoOnlineController::class, 'exibirImagem'])
     ->where('nome', '[A-Fa-f0-9\-]{36}\.(png|jpg|jpeg|gif|webp)')
-    ->name('laboratorio.criar-laudo-online.imagem')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.imagem')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/pdf/previa', [LaboratorioCriarLaudoOnlineController::class, 'previsualizarPdf'])
-    ->name('laboratorio.criar-laudo-online.pdf.previa')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.pdf.previa')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::post('/laboratorio/criar-laudo-online/{ordem_servico}/enviar-resptec', [LaboratorioCriarLaudoOnlineController::class, 'enviarRespTec'])
-    ->name('laboratorio.criar-laudo-online.enviar-resptec')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.enviar-resptec')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/laboratorio/criar-laudo-online/{ordem_servico}/pdf', [LaboratorioCriarLaudoOnlineController::class, 'baixarPdf'])
-    ->name('laboratorio.criar-laudo-online.pdf')->middleware('auth');
+    ->name('laboratorio.criar-laudo-online.pdf')->middleware(['auth', 'can:acessar-laboratorio']);
 
 Route::get('/resptec', function () {
     return Inertia::render('Resptec');

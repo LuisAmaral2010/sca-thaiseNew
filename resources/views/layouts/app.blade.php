@@ -37,8 +37,12 @@
                 <div class="collapse sca-navbar__collapse" id="scaNavCollapse">
                     <nav class="sca-navbar__nav">
                         <a class="sca-navbar__link {{ request()->is('dashboard*') ? 'is-active' : '' }}" href="{{ route('dashboard.index') }}">Dashboard</a>
-                        <a class="sca-navbar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">CRA</a>
-                        <a class="sca-navbar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">Laboratório</a>
+                        @can('acessar-cra')
+                            <a class="sca-navbar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra">CRA</a>
+                        @endcan
+                        @can('acessar-laboratorio')
+                            <a class="sca-navbar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio">Laboratório</a>
+                        @endcan
                         <a class="sca-navbar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec">Resp Tec</a>
                         <a class="sca-navbar__link {{ request()->is('solicitacao*') || request()->is('solicitacoes_servicos*') || request()->is('solicitante*') ? 'is-active' : '' }}" href="/solicitacoes_servicos">Solicitante</a>
                     </nav>
@@ -86,14 +90,18 @@
                                 <x-icon name="layout-dashboard" />
                                 <span>Dashboard</span>
                             </a>
-                            <a class="sca-sidebar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra" title="CRA">
-                                <x-icon name="building-2" />
-                                <span>CRA</span>
-                            </a>
-                            <a class="sca-sidebar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio" title="Laboratório">
-                                <x-icon name="flask-conical" />
-                                <span>Laboratório</span>
-                            </a>
+                            @can('acessar-cra')
+                                <a class="sca-sidebar__link {{ request()->is('cra*') ? 'is-active' : '' }}" href="/cra" title="CRA">
+                                    <x-icon name="building-2" />
+                                    <span>CRA</span>
+                                </a>
+                            @endcan
+                            @can('acessar-laboratorio')
+                                <a class="sca-sidebar__link {{ request()->is('laboratorio*') ? 'is-active' : '' }}" href="/laboratorio" title="Laboratório">
+                                    <x-icon name="flask-conical" />
+                                    <span>Laboratório</span>
+                                </a>
+                            @endcan
                             <a class="sca-sidebar__link {{ request()->is('resptec*') ? 'is-active' : '' }}" href="/resptec" title="Resp Tec">
                                 <x-icon name="user-cog" />
                                 <span>Resp Tec</span>

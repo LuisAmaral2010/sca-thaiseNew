@@ -22,6 +22,16 @@ class UnidadeOperacional extends Model
         'responsavel_substituto_matricula',
     ];
 
+    public function responsavel(): BelongsTo
+    {
+        return $this->belongsTo(Empregado::class, 'responsavel_matricula', 'matricula');
+    }
+
+    public function responsavelSubstituto(): BelongsTo
+    {
+        return $this->belongsTo(Empregado::class, 'responsavel_substituto_matricula', 'matricula');
+    }
+
     public function ordemServico():HasMany
     {
         return $this->hasMany(OrdemServico::class);
