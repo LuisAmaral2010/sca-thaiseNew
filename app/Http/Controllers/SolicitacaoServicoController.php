@@ -13,6 +13,10 @@ use App\Models\ExecucaoAnalise;
 use App\Models\ClienteExterno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SolicitacaoEnviadaCraMail;
+use App\Models\CraPerfil;
 use Illuminate\Validation\Rule;
 
 class SolicitacaoServicoController extends Controller
@@ -503,6 +507,8 @@ class SolicitacaoServicoController extends Controller
             ]);
         });
 
+        $this->avisarCraPorEmail($solicitacao_servico);
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -513,6 +519,30 @@ class SolicitacaoServicoController extends Controller
         return redirect()
             ->route('solicitacoes_servicos.show', $solicitacao_servico)
             ->with('success', 'Solicitação enviada ao CRA com sucesso!');
+    }
+
+    // Avisa o CRA (e-mail cadastrado em cra_perfil) que a solicitação foi enviada.
+    // Falha no envio não desfaz o envio da solicitação; só fica registrada no log.
+    private function avisarCraPorEmail(SolicitacaoServico $solicitacao): void
+    {
+        $email = CraPerfil::unico()?->email;
+
+        if (!$email) {
+            Log::warning('E-mail do CRA não cadastrado em cra_perfil; aviso de solicitação enviada não foi enviado.', [
+                'solicitacao_servico_id' => $solicitacao->solicitacao_servico_id,
+            ]);
+
+            return;
+        }
+
+        try {
+            Mail::to($email)->send(new SolicitacaoEnviadaCraMail($solicitacao->loadMissing('empregado')));
+        } catch (\Throwable $e) {
+            Log::error('Falha ao enviar e-mail de solicitação enviada ao CRA.', [
+                'solicitacao_servico_id' => $solicitacao->solicitacao_servico_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     // Cancela uma solicitação ainda em rascunho (status CRIADO), sem excluir
