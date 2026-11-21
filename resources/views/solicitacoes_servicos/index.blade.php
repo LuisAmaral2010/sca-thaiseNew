@@ -73,6 +73,10 @@
                             <td>
                                 <a href="{{ route('solicitacoes_servicos.show', $solicitacao_servico) }}" class="sca-btn sca-btn--outline sca-btn--sm">Detalhes</a>
 
+                                @if ($solicitacao_servico->status === \App\Http\Controllers\SolicitacaoServicoLaudoController::STATUS_APROVADO_RESPTEC)
+                                    <a href="{{ route('solicitacoes_servicos.laudos', $solicitacao_servico) }}" class="sca-btn sca-btn--primary sca-btn--sm" target="_blank" rel="noopener">Visualizar Laudo</a>
+                                @endif
+
                                 @can('index-solicitacao_servico')
                                     <a href="{{ route('solicitacao_servico.index', ['solicitacao_servico' => $solicitacao_servico->id]) }}" class="sca-link">Turmas</a>
                                 @endcan

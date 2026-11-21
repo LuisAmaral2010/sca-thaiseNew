@@ -3,6 +3,7 @@
 use App\Http\Controllers\AmostraController;
 use App\Http\Controllers\ClienteExternoController;
 use App\Http\Controllers\SolicitacaoServicoController;
+use App\Http\Controllers\SolicitacaoServicoLaudoController;
 use App\Http\Controllers\SolicitacaoServicoExternoController;
 use App\Http\Controllers\ArquivoCRAController;
 use App\Http\Controllers\ArquivoLaboratorioController;
@@ -123,6 +124,9 @@ Route::prefix('solicitacoes_servicos')->middleware('auth')->group(function(){
     Route::post('/{solicitacao_servico}/finalizar', [SolicitacaoServicoController::class, 'finalizar'])->name('solicitacoes_servicos.finalizar');
     Route::post('/{solicitacao_servico}/enviar-cra', [SolicitacaoServicoController::class, 'enviarCra'])->name('solicitacoes_servicos.enviar_cra');
     Route::post('/{solicitacao_servico}/cancelar', [SolicitacaoServicoController::class, 'cancelar'])->name('solicitacoes_servicos.cancelar');
+    // Botão "Visualizar Laudo": laudos aprovados pelo RespTec da solicitação
+    Route::get('/{solicitacao_servico}/laudos', [SolicitacaoServicoLaudoController::class, 'index'])->name('solicitacoes_servicos.laudos');
+    Route::get('/{solicitacao_servico}/laudos/{laudo}/pdf', [SolicitacaoServicoLaudoController::class, 'pdf'])->name('solicitacoes_servicos.laudos.pdf');
 });
 
 // routes/web.php
