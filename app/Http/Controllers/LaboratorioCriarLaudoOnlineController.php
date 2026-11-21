@@ -24,10 +24,15 @@ use Inertia\Inertia;
 
 class LaboratorioCriarLaudoOnlineController extends Controller
 {
+    // Definido ao clicar "Preencher resultados" na página de resumo
+    private const STATUS_LAUDO_EM_CRIACAO = 'LAUDO EM CRIAÇÃO';
+
     // Ordens de serviço cujos resultados podem ser preenchidos online:
-    // já recebidas pelo laboratório, com ou sem prévia do laudo criada
+    // já recebidas pelo laboratório, com laudo em criação ou com prévia do
+    // laudo criada
     private const STATUS_EDITAVEIS = [
         'RECEBIDO PELO LABORATORIO',
+        self::STATUS_LAUDO_EM_CRIACAO,
         'PRÉVIA DO LAUDO CRIADA',
     ];
 
@@ -216,7 +221,7 @@ class LaboratorioCriarLaudoOnlineController extends Controller
             ->get(['execucao_analise_id', 'fracao_amostra_id', 'servico_id'])
             ->groupBy(fn ($execucao) => $execucao->fracao_amostra_id . '-' . $execucao->servico_id);
 
-        DB::transaction(function () use ($linhas, $marcadas) {
+        DB::transaction(function () use ($linhas, $marcadas, $ordem_servico) {
             foreach ($linhas as $execucoes) {
                 // updateOrCreate: solicitações anteriores à tabela
                 // fracao_amostra_servico ainda não têm o registro
@@ -227,6 +232,24 @@ class LaboratorioCriarLaudoOnlineController extends Controller
                     'laudo_criado' => $execucoes->contains(fn ($execucao) => in_array($execucao->execucao_analise_id, $marcadas, true)),
                 ]);
             }
+
+            // Status "LAUDO EM CRIAÇÃO" na ordem de serviço (com registro em
+            // ordem_servico_historico só quando muda) e em suas frações
+            $now = now();
+
+            if ($ordem_servico->status_atual !== self::STATUS_LAUDO_EM_CRIACAO) {
+                $ordem_servico->update([
+                    'status_atual' => self::STATUS_LAUDO_EM_CRIACAO,
+                    'data_status_atual' => $now,
+                ]);
+
+                $ordem_servico->registrarHistorico();
+            }
+
+            FracaoAmostra::where('ordem_servico_id', $ordem_servico->ordem_servico_id)->update([
+                'status_atual' => self::STATUS_LAUDO_EM_CRIACAO,
+                'data_status_atual' => $now,
+            ]);
         });
 
         return redirect()->route('laboratorio.criar-laudo-online.show', $ordem_servico->ordem_servico_id);

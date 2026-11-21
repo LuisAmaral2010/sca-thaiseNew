@@ -414,6 +414,14 @@ Route::get('/resptec/aprovar-laudo', [ResptecAprovarLaudoController::class, 'ind
 Route::get('/resptec/aprovar-laudo/{laudo}/arquivo', [ResptecAprovarLaudoController::class, 'baixarArquivo'])
     ->name('resptec.aprovar-laudo.arquivo')->middleware('auth');
 
+// Botão "Visualizar Laudo": página com o PDF e os botões Aceitar/Rejeitar/Voltar
+Route::get('/resptec/aprovar-laudo/{laudo}/visualizar', [ResptecAprovarLaudoController::class, 'visualizar'])
+    ->name('resptec.aprovar-laudo.visualizar')->middleware('auth');
+
+// PDF do laudo aberto no navegador (exibido dentro da página de visualização)
+Route::get('/resptec/aprovar-laudo/{laudo}/pdf', [ResptecAprovarLaudoController::class, 'visualizarArquivo'])
+    ->name('resptec.aprovar-laudo.pdf')->middleware('auth');
+
 Route::post('/resptec/aprovar-laudo/{laudo}/aprovar', [ResptecAprovarLaudoController::class, 'aprovar'])
     ->name('resptec.aprovar-laudo.aprovar')->middleware('auth');
 

@@ -219,6 +219,17 @@
                                     <td>{{ \Carbon\Carbon::parse($evento['data'])->format('d/m/Y H:i') }}</td>
                                 </tr>
                             @endforeach
+                            {{-- Ramos: frações com status "LAUDO EM CRIAÇÃO" --}}
+                            @foreach($traco['ramos'] as $ramo)
+                                @foreach($ramo['eventos'] as $evento)
+                                    <tr>
+                                        <td>{{ $traco['ordem_servico_id'] }}</td>
+                                        <td>{{ $traco['nome'] }}</td>
+                                        <td>{{ $evento['status'] }} ({{ $ramo['rotulo'] }})</td>
+                                        <td>{{ \Carbon\Carbon::parse($evento['data'])->format('d/m/Y H:i') }}</td>
+                                    </tr>
+                                @endforeach
+                            @endforeach
                         @endforeach
                     </tbody>
                 </table>
@@ -307,6 +318,7 @@
         'CANCELADO_PELO_USUARIO': 'proibido',
         'ENVIADO_LABORATORIO': 'caminhao',
         'RECEBIDO PELO LABORATORIO': 'frasco',
+        'LAUDO EM CRIAÇÃO': 'documento',
         'PRÉVIA DO LAUDO CRIADA': 'documento',
         'LAUDO ENVIADO PARA RESPTEC': 'documentoOk',
         'LAUDO ESPERANDO APROVAÇÃO DO RESPTEC': 'documentoOk',
@@ -322,15 +334,26 @@
     const botaoTodos = document.getElementById('traceAlternarTodos');
     const NS = 'http://www.w3.org/2000/svg';
 
+    const paraPontos = eventos => eventos.map(e => ({ status: e.status, data: new Date(e.data) }));
+
+    // Cada série: linha da ordem de serviço (pontos) e, se houver frações com
+    // "LAUDO EM CRIAÇÃO", um ramo por fração saindo do último ponto da linha
     const series = tracos.map((t, i) => ({
         ...t,
         cor: CORES[i % CORES.length],
-        pontos: t.eventos.map(e => ({ status: e.status, data: new Date(e.data) })),
+        pontos: paraPontos(t.eventos),
+        ramos: (t.ramos || []).map(r => ({ ...r, pontos: paraPontos(r.eventos) })),
     }));
 
-    // Pontos expandidos (chave "serie-ponto"); começa tudo recolhido
+    // Todos os pontos de uma série, inclusive os dos ramos
+    const pontosDaSerie = s => [...s.pontos, ...s.ramos.flatMap(r => r.pontos)];
+
+    // Pontos expandidos (chave "serie-ponto" ou "serie-rRamo-ponto"); começa tudo recolhido
     const expandidos = new Set();
-    const todasChaves = series.flatMap((s, i) => s.pontos.map((_, k) => `${i}-${k}`));
+    const todasChaves = series.flatMap((s, i) => [
+        ...s.pontos.map((_, k) => `${i}-${k}`),
+        ...s.ramos.flatMap((r, j) => r.pontos.map((_, k) => `${i}-r${j}-${k}`)),
+    ]);
 
     const rotuloStatus = s => s.replace(/_/g, ' ');
     const pad2 = n => String(n).padStart(2, '0');
@@ -348,7 +371,7 @@
     }
 
     // Legenda dos ícones: só os status presentes, na ordem em que aparecem
-    [...new Set(series.flatMap(s => s.pontos.map(p => p.status)))].forEach(status => {
+    [...new Set(series.flatMap(s => pontosDaSerie(s).map(p => p.status)))].forEach(status => {
         const item = document.createElement('span');
         item.className = 'trace-icones__item';
         item.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="var(--sca-muted-foreground)"/>`
@@ -428,6 +451,81 @@
         desenhar();
     });
 
+    // Ícone clicável de um ponto (da ordem de serviço ou de um ramo de
+    // fração) e, se aberto, a caixa de detalhe ao lado com status, data e
+    // hora; nos ramos, a caixa começa pelo nome da fração
+    // Marca o horário real quando o ícone precisou se afastar dele (desenhada
+    // antes das caixas de detalhe, para não ficar por cima delas)
+    function marcarHorarioReal(svg, s, { x, yReal, yIcone }) {
+        if (yIcone - yReal > 2) {
+            el('circle', { cx: x, cy: yReal, r: 2.5, fill: s.cor }, svg);
+        }
+    }
+
+    function desenharPonto(svg, s, { p, chave, x, ramo, indiceRamo, aberto, linhas, nTitulo, alturaDetalhe, yIcone }, fonte) {
+        if (aberto) {
+            const caixa = el('rect', {
+                x: x + RAIO + 8, y: yIcone - RAIO, rx: 6,
+                height: alturaDetalhe, width: 10,
+                fill: 'var(--trace-surface)', stroke: s.cor, 'stroke-width': 1,
+            }, svg);
+            let larguraTexto = 0;
+            linhas.forEach((texto, j) => {
+                const t = el('text', {
+                    x: x + RAIO + 16, y: yIcone - RAIO + 3 + (j + 1) * LINHA_TEXTO,
+                    'font-size': fonte,
+                    'font-weight': j < nTitulo ? 400 : 600,
+                    fill: 'var(--trace-ink)',
+                }, svg);
+                t.textContent = texto;
+                larguraTexto = Math.max(larguraTexto, t.getComputedTextLength());
+            });
+            const tData = el('text', {
+                x: x + RAIO + 16, y: yIcone - RAIO + 3 + (linhas.length + 1) * LINHA_TEXTO,
+                'font-size': fonte, fill: 'var(--trace-muted)',
+            }, svg);
+            tData.textContent = fmtData(p.data);
+            larguraTexto = Math.max(larguraTexto, tData.getComputedTextLength());
+            caixa.setAttribute('width', Math.ceil(larguraTexto) + 16);
+        } else if (ramo) {
+            // Ramo recolhido: identifica fração e serviço (F1.1, F1.2, ...)
+            // abaixo do ícone, longe da linha do ramo seguinte
+            const t = el('text', {
+                x, y: yIcone + RAIO + fonte + 2, 'text-anchor': 'middle',
+                'font-size': fonte, 'font-weight': 600, fill: 'var(--trace-muted)',
+            }, svg);
+            t.textContent = ramo.sigla || `F${indiceRamo + 1}`;
+        }
+
+        const descricao = `OS ${s.ordem_servico_id}${ramo ? ` · ${ramo.rotulo}` : ''}: ${rotuloStatus(p.status)}, ${fmtData(p.data)}`;
+
+        // Ícone clicável (também por teclado: Enter ou Espaço)
+        const g = el('g', {
+            class: 'trace-icone',
+            tabindex: 0,
+            role: 'button',
+            'data-chave': chave,
+            'aria-expanded': String(aberto),
+            'aria-label': descricao,
+        }, svg);
+        el('circle', { class: 'trace-icone__foco', cx: x, cy: yIcone, r: RAIO + 3, fill: 'none', stroke: aberto ? s.cor : 'transparent', 'stroke-width': 1.5 }, g);
+        el('circle', { cx: x, cy: yIcone, r: RAIO, fill: s.cor, stroke: 'var(--trace-surface)', 'stroke-width': 2 }, g);
+        const icone = el('g', {
+            transform: `translate(${x - 7} ${yIcone - 7}) scale(${14 / 24})`,
+            fill: 'none', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+        }, g);
+        icone.innerHTML = iconeDe(p.status);
+        el('title', {}, g).textContent = `${ramo ? ramo.rotulo + ' · ' : ''}${rotuloStatus(p.status)} · ${fmtData(p.data)}`;
+
+        g.addEventListener('click', () => alternar(chave));
+        g.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                alternar(chave);
+            }
+        });
+    }
+
     // Gráfico vertical: uma linha vertical por ordem de serviço, com o tempo
     // correndo de cima para baixo e um ícone em cada mudança de status.
     // Recolhido mostra só os ícones; clicar em um ícone abre ao lado o
@@ -443,7 +541,7 @@
         const plotW = Math.max(80, largura - margem.left - margem.right);
         const plotH = compacto ? 340 : 400;
 
-        const tempos = series.flatMap(s => s.pontos.map(p => p.data.getTime()));
+        const tempos = series.flatMap(s => pontosDaSerie(s).map(p => p.data.getTime()));
         let ini = Math.min(...tempos), fim = Math.max(...tempos);
         if (fim - ini < MIN) { ini -= 30 * MIN; fim += 30 * MIN; }
         const folga = (fim - ini) * 0.06;
@@ -477,89 +575,79 @@
             const cab = el('text', { x: x + 12, y: 22, 'font-size': fonte + 1, 'font-weight': 600, fill: 'var(--trace-ink)' }, svg);
             cab.textContent = `OS ${s.ordem_servico_id} · ${s.sigla.length > 12 ? s.sigla.slice(0, 12) + '…' : s.sigla}`;
 
+            // Itens: pontos da linha da ordem de serviço e, depois deles, os
+            // pontos de cada ramo (fração com "LAUDO EM CRIAÇÃO"); cada ramo
+            // fica deslocado para a direita do anterior
+            const nRamos = s.ramos.length;
+            const dxRamo = nRamos > 1
+                ? Math.max(18, Math.min(28, (faixa - RAIO * 2 - 24) / nRamos))
+                : 0;
+            const itens = [
+                ...s.pontos.map((p, k) => ({ p, chave: `${i}-${k}`, x, ramo: null, indiceRamo: -1 })),
+                ...s.ramos.flatMap((r, j) => r.pontos.map((p, k) => ({
+                    p, chave: `${i}-r${j}-${k}`, x: x + j * dxRamo, ramo: r, indiceRamo: j,
+                }))),
+            ];
+
             // Posição de cada ícone: no horário do evento, empurrado para baixo
-            // quando encostaria no ícone (ou no detalhe aberto) anterior
-            const layout = [];
+            // quando encostaria no ícone (ou no detalhe aberto) anterior; os
+            // ramos ficam assim em escada, sem sobrepor seus detalhes
             let limite = -Infinity;
-            s.pontos.forEach((p, k) => {
-                const chave = `${i}-${k}`;
-                const aberto = expandidos.has(chave);
-                const linhas = aberto ? quebrarRotulo(rotuloStatus(p.status), maxCaracteres) : [];
+            const layout = itens.map(item => {
+                const aberto = expandidos.has(item.chave);
+                const titulo = aberto && item.ramo ? quebrarRotulo(item.ramo.rotulo, maxCaracteres) : [];
+                const linhas = aberto ? [...titulo, ...quebrarRotulo(rotuloStatus(item.p.status), maxCaracteres)] : [];
                 const alturaDetalhe = aberto ? (linhas.length + 1) * LINHA_TEXTO + 12 : 0;
-                const yReal = y(p.data.getTime());
+                const yReal = y(item.p.data.getTime());
                 const yIcone = Math.max(yReal, limite);
-                layout.push({ p, chave, aberto, linhas, alturaDetalhe, yReal, yIcone });
                 // Próximo ícone: abaixo deste e, se aberto, abaixo da caixa de detalhe
                 limite = aberto
                     ? Math.max(yIcone + ESPACO_MIN, yIcone - RAIO + alturaDetalhe + 8 + RAIO)
                     : yIcone + ESPACO_MIN;
-                fundo = Math.max(fundo, yIcone + Math.max(RAIO, alturaDetalhe - RAIO) + 4);
+                // Ramo recolhido tem o rótulo F1, F2... abaixo do ícone
+                const rodape = item.ramo && !aberto ? fonte + 2 : 0;
+                fundo = Math.max(fundo, yIcone + Math.max(RAIO + rodape, alturaDetalhe - RAIO) + 4);
+                return { ...item, aberto, linhas, nTitulo: titulo.length, alturaDetalhe, yReal, yIcone };
             });
 
-            // Linha vertical do primeiro ao último ícone
-            el('line', {
-                x1: x, x2: x,
-                y1: layout[0].yIcone, y2: layout[layout.length - 1].yIcone,
-                stroke: s.cor, 'stroke-width': 2, 'stroke-linecap': 'round',
-            }, svg);
+            const tronco = layout.filter(item => !item.ramo);
+            const linha = { stroke: s.cor, 'stroke-width': 2, 'stroke-linecap': 'round', fill: 'none' };
 
-            layout.forEach(({ p, chave, aberto, linhas, alturaDetalhe, yReal, yIcone }) => {
-                // Marca o horário real quando o ícone precisou se afastar dele
-                if (yIcone - yReal > 2) {
-                    el('circle', { cx: x, cy: yReal, r: 2.5, fill: s.cor }, svg);
-                }
+            // Linha vertical do primeiro ao último ícone da ordem de serviço
+            if (tronco.length) {
+                el('line', { x1: x, x2: x, y1: tronco[0].yIcone, y2: tronco[tronco.length - 1].yIcone, ...linha }, svg);
+            }
 
-                // Detalhe aberto: status, data e hora ao lado do ícone
-                if (aberto) {
-                    const caixa = el('rect', {
-                        x: x + RAIO + 8, y: yIcone - RAIO, rx: 6,
-                        height: alturaDetalhe, width: 10,
-                        fill: 'var(--trace-surface)', stroke: s.cor, 'stroke-width': 1,
-                    }, svg);
-                    let larguraTexto = 0;
-                    linhas.forEach((linha, j) => {
-                        const t = el('text', {
-                            x: x + RAIO + 16, y: yIcone - RAIO + 3 + (j + 1) * LINHA_TEXTO,
-                            'font-size': fonte, 'font-weight': 600, fill: 'var(--trace-ink)',
-                        }, svg);
-                        t.textContent = linha;
-                        larguraTexto = Math.max(larguraTexto, t.getComputedTextLength());
-                    });
-                    const tData = el('text', {
-                        x: x + RAIO + 16, y: yIcone - RAIO + 3 + (linhas.length + 1) * LINHA_TEXTO,
-                        'font-size': fonte, fill: 'var(--trace-muted)',
-                    }, svg);
-                    tData.textContent = fmtData(p.data);
-                    larguraTexto = Math.max(larguraTexto, tData.getComputedTextLength());
-                    caixa.setAttribute('width', Math.ceil(larguraTexto) + 16);
-                }
+            // Ramos: do último ícone da ordem desce até logo abaixo dele (ou
+            // da caixa de detalhe aberta), segue na horizontal até a coluna
+            // do ramo e desce até o ícone da fração
+            const ultimo = tronco[tronco.length - 1];
+            const yGarfo = ultimo
+                ? (ultimo.aberto ? ultimo.yIcone - RAIO + ultimo.alturaDetalhe + 4 : ultimo.yIcone + RAIO + 4)
+                : null;
 
-                // Ícone clicável (também por teclado: Enter ou Espaço)
-                const g = el('g', {
-                    class: 'trace-icone',
-                    tabindex: 0,
-                    role: 'button',
-                    'data-chave': chave,
-                    'aria-expanded': String(aberto),
-                    'aria-label': `OS ${s.ordem_servico_id}: ${rotuloStatus(p.status)}, ${fmtData(p.data)}`,
-                }, svg);
-                el('circle', { class: 'trace-icone__foco', cx: x, cy: yIcone, r: RAIO + 3, fill: 'none', stroke: aberto ? s.cor : 'transparent', 'stroke-width': 1.5 }, g);
-                el('circle', { cx: x, cy: yIcone, r: RAIO, fill: s.cor, stroke: 'var(--trace-surface)', 'stroke-width': 2 }, g);
-                const icone = el('g', {
-                    transform: `translate(${x - 7} ${yIcone - 7}) scale(${14 / 24})`,
-                    fill: 'none', stroke: '#fff', 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
-                }, g);
-                icone.innerHTML = iconeDe(p.status);
-                el('title', {}, g).textContent = `${rotuloStatus(p.status)} · ${fmtData(p.data)}`;
+            s.ramos.forEach((r, j) => {
+                const pts = layout.filter(item => item.indiceRamo === j);
+                if (!pts.length) return;
+                const xr = pts[0].x;
+                const yFim = pts[pts.length - 1].yIcone;
 
-                g.addEventListener('click', () => alternar(chave));
-                g.addEventListener('keydown', e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        alternar(chave);
+                if (!ultimo) {
+                    if (pts.length > 1) {
+                        el('line', { x1: xr, x2: xr, y1: pts[0].yIcone, y2: yFim, ...linha }, svg);
                     }
-                });
+                    return;
+                }
+
+                const curva = 6;
+                const d = xr === x
+                    ? `M ${x} ${ultimo.yIcone} V ${yFim}`
+                    : `M ${x} ${ultimo.yIcone} V ${yGarfo} H ${xr - curva} Q ${xr} ${yGarfo} ${xr} ${yGarfo + curva} V ${yFim}`;
+                el('path', { d, ...linha }, svg);
             });
+
+            layout.forEach(item => marcarHorarioReal(svg, s, item));
+            layout.forEach(item => desenharPonto(svg, s, item, fonte));
         });
 
         const altura = Math.ceil(fundo + margem.bottom);

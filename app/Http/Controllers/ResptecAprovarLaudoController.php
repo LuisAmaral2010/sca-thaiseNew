@@ -127,7 +127,16 @@ class ResptecAprovarLaudoController extends Controller
 
         $this->gravarStatus($laudo, $ordem, self::STATUS_APROVADO_RESPTEC);
 
-        return back()->with('success', "Laudo {$laudo->numero_laudo} aprovado com sucesso.");
+        return $this->voltar(request(), $ordem)->with('success', "Laudo {$laudo->numero_laudo} aprovado com sucesso.");
+    }
+
+    // Depois de aprovar/rejeitar: volta para a página de origem ou, vindo da
+    // visualização do laudo (voltar_para_lista), para a lista da unidade
+    private function voltar(Request $request, OrdemServico $ordem)
+    {
+        return $request->boolean('voltar_para_lista')
+            ? redirect()->route('resptec.aprovar-laudo', ['unidade_operacional_id' => $ordem->unidade_operacional_id])
+            : back();
     }
 
     // Rejeita o laudo: grava "LAUDO REJEITADO PELO RESPTEC" nas mesmas
@@ -150,7 +159,7 @@ class ResptecAprovarLaudoController extends Controller
 
         $this->gravarStatus($laudo, $ordem, self::STATUS_REJEITADO_RESPTEC, ['observacao' => $validated['motivo']]);
 
-        return back()->with('success', "Laudo {$laudo->numero_laudo} rejeitado.");
+        return $this->voltar($request, $ordem)->with('success', "Laudo {$laudo->numero_laudo} rejeitado.");
     }
 
     // Ordem de serviço do laudo, desde que o usuário tenha permissão na unidade
@@ -194,18 +203,65 @@ class ResptecAprovarLaudoController extends Controller
     // original do arquivo. Só para unidades em que o usuário tem permissão.
     public function baixarArquivo(Laudo $laudo)
     {
+        $arquivo = $this->arquivoDoLaudoPermitido($laudo);
+
+        return response()->streamDownload(
+            fn () => print($arquivo->document_content),
+            $this->nomeDoArquivo($laudo, $arquivo),
+            ['Content-Type' => $arquivo->content_type ?: 'application/pdf']
+        );
+    }
+
+    // Botão "Visualizar Laudo": página com o PDF do laudo e os botões
+    // "Aceitar Laudo", "Rejeitar Laudo" e "Voltar"
+    public function visualizar(Laudo $laudo)
+    {
+        $ordem = $this->ordemDoLaudoPermitida($laudo);
+
+        // Só o nome: o conteúdo do PDF é carregado pelo <iframe> (rota .pdf)
+        $arquivo = ArquivoLaboratorio::where('laudo_id', $laudo->laudo_id)->first(['nome']);
+
+        return Inertia::render('Resptec/VisualizarLaudo', [
+            'laudo' => [
+                'laudo_id' => $laudo->laudo_id,
+                'numero_laudo' => $laudo->numero_laudo,
+                'ordem_servico_id' => $ordem->ordem_servico_id,
+                'unidade_operacional_id' => $ordem->unidade_operacional_id,
+                'status' => $ordem->status_atual,
+                'aguardando_aprovacao' => $ordem->status_atual === self::STATUS_AGUARDANDO_RESPTEC,
+                'arquivo_nome' => $arquivo ? ($arquivo->nome ?: "{$laudo->numero_laudo}.pdf") : null,
+            ],
+        ]);
+    }
+
+    // PDF do laudo aberto no navegador (inline), exibido dentro da página de
+    // visualização. Mesma verificação de permissão do download.
+    public function visualizarArquivo(Laudo $laudo)
+    {
+        $arquivo = $this->arquivoDoLaudoPermitido($laudo);
+
+        return response($arquivo->document_content, 200, [
+            'Content-Type' => $arquivo->content_type ?: 'application/pdf',
+            'Content-Disposition' => \Symfony\Component\HttpFoundation\HeaderUtils::makeDisposition(
+                'inline',
+                $this->nomeDoArquivo($laudo, $arquivo),
+                \Illuminate\Support\Str::ascii($this->nomeDoArquivo($laudo, $arquivo))
+            ),
+        ]);
+    }
+
+    // Arquivo (PDF) do laudo, só para unidades em que o usuário tem permissão
+    private function arquivoDoLaudoPermitido(Laudo $laudo): ArquivoLaboratorio
+    {
         $unidadeOperacionalId = OrdemServico::whereKey($laudo->ordem_servico_id)->value('unidade_operacional_id');
 
         abort_unless(in_array($unidadeOperacionalId, $this->unidadesOperacionaisPermitidas()), 403);
 
-        $arquivo = ArquivoLaboratorio::where('laudo_id', $laudo->laudo_id)->firstOrFail();
+        return ArquivoLaboratorio::where('laudo_id', $laudo->laudo_id)->firstOrFail();
+    }
 
-        $nome = $arquivo->nome ?: "{$laudo->numero_laudo}.pdf";
-
-        return response()->streamDownload(
-            fn () => print($arquivo->document_content),
-            $nome,
-            ['Content-Type' => $arquivo->content_type ?: 'application/pdf']
-        );
+    private function nomeDoArquivo(Laudo $laudo, ArquivoLaboratorio $arquivo): string
+    {
+        return $arquivo->nome ?: "{$laudo->numero_laudo}.pdf";
     }
 }

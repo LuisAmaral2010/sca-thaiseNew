@@ -17,6 +17,8 @@ use Illuminate\Validation\Rule;
 
 class SolicitacaoServicoController extends Controller
 {
+    private const STATUS_LAUDO_EM_CRIACAO = 'LAUDO EM CRIAÇÃO';
+
     // Listar as solicitacao_servicos
     public function index(Request $request)
     {
@@ -90,22 +92,72 @@ class SolicitacaoServicoController extends Controller
             ->get()
             ->groupBy('ordem_servico_id');
 
-        $tracos = $ordens->sortKeys()->map(function (OrdemServico $ordem) use ($historico) {
+        // Frações com status "LAUDO EM CRIAÇÃO": a linha da ordem de serviço
+        // se divide em um ramo por registro de fracao_amostra_servico
+        // (fração + serviço) dessas frações
+        $fracoesEmCriacao = FracaoAmostra::query()
+            ->whereIn('ordem_servico_id', $ordens->keys())
+            ->where('status_atual', self::STATUS_LAUDO_EM_CRIACAO)
+            ->whereIn('fracao_amostra_id', FracaoAmostraServico::select('fracao_amostra_id'))
+            ->with('amostra')
+            ->orderBy('fracao_amostra_id')
+            ->get()
+            ->groupBy('ordem_servico_id');
+
+        $servicosPorFracao = FracaoAmostraServico::query()
+            ->whereIn('fracao_amostra_id', $fracoesEmCriacao->flatten()->pluck('fracao_amostra_id'))
+            ->with('servico')
+            ->orderBy('fracao_amostra_servico_id')
+            ->get()
+            ->groupBy('fracao_amostra_id');
+
+        $tracos = $ordens->sortKeys()->map(function (OrdemServico $ordem) use ($historico, $fracoesEmCriacao, $servicosPorFracao) {
             $nome = $ordem->unidadeOperacional?->nome ?? 'Unidade ' . $ordem->unidade_operacional_id;
+
+            $eventos = $historico->get($ordem->ordem_servico_id, collect())
+                ->map(fn ($registro) => [
+                    'status' => $registro->status_atual,
+                    'data' => \Carbon\Carbon::parse($registro->data_status_atual)->toIso8601String(),
+                ])
+                ->values();
+
+            // Um ramo por fração + serviço; sigla "F{fração}.{serviço}" (ex.: F1.2)
+            $ramos = $fracoesEmCriacao->get($ordem->ordem_servico_id, collect())
+                ->values()
+                ->flatMap(function (FracaoAmostra $fracao, $indiceFracao) use ($ordem, $servicosPorFracao) {
+                    $amostra = $fracao->amostra?->descricao ?: 'amostra ' . $fracao->amostra_id;
+                    $evento = [
+                        'status' => $fracao->status_atual,
+                        'data' => \Carbon\Carbon::parse($fracao->data_status_atual ?? $ordem->data_status_atual ?? now())->toIso8601String(),
+                    ];
+
+                    return $servicosPorFracao->get($fracao->fracao_amostra_id, collect())
+                        ->values()
+                        ->map(fn (FracaoAmostraServico $registro, $indiceServico) => [
+                            'fracao_amostra_servico_id' => $registro->fracao_amostra_servico_id,
+                            'sigla' => 'F' . ($indiceFracao + 1) . '.' . ($indiceServico + 1),
+                            'rotulo' => 'Fração ' . ($indiceFracao + 1) . ': ' . $amostra
+                                . ' · ' . ($registro->servico?->descricao ?? 'serviço ' . $registro->servico_id),
+                            'eventos' => [$evento],
+                        ]);
+                })
+                ->values();
+
+            // O "LAUDO EM CRIAÇÃO" da própria ordem passa a ser mostrado nos
+            // ramos das frações, que saem do último status anterior a ele
+            if ($ramos->isNotEmpty() && ($eventos->last()['status'] ?? null) === self::STATUS_LAUDO_EM_CRIACAO) {
+                $eventos->pop();
+            }
 
             return [
                 'ordem_servico_id' => $ordem->ordem_servico_id,
                 'nome' => $nome,
                 // Sigla entre parênteses no fim do nome (ex.: "LASI"), usada no rótulo do traço
                 'sigla' => preg_match('/\(([^)]+)\)\s*$/', $nome, $m) ? $m[1] : $nome,
-                'eventos' => $historico->get($ordem->ordem_servico_id, collect())
-                    ->map(fn ($registro) => [
-                        'status' => $registro->status_atual,
-                        'data' => \Carbon\Carbon::parse($registro->data_status_atual)->toIso8601String(),
-                    ])
-                    ->values(),
+                'eventos' => $eventos,
+                'ramos' => $ramos,
             ];
-        })->filter(fn ($traco) => $traco['eventos']->isNotEmpty())->values();
+        })->filter(fn ($traco) => $traco['eventos']->isNotEmpty() || $traco['ramos']->isNotEmpty())->values();
 
         // Carregar a view
         return view('solicitacoes_servicos.show', [

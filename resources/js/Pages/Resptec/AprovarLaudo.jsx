@@ -1,32 +1,12 @@
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { CheckIcon, DownloadIcon, XIcon } from 'lucide-react';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { DownloadIcon, EyeIcon } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import AppLayout from '@/Layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { BotaoAprovar, BotaoRejeitar } from '@/components/resptec/botoes-laudo';
 import {
     Select,
     SelectContent,
@@ -82,6 +62,31 @@ function StatusBadge({ status }) {
     );
 }
 
+// Abre a página de visualização do laudo (PDF com os botões Aceitar,
+// Rejeitar e Voltar); desabilitado quando o laudo ainda não tem arquivo
+function BotaoVisualizar({ ordem, className = '' }) {
+    if (!ordem.laudo_id || !ordem.arquivo_nome) {
+        return (
+            <Button size="sm" variant="outline" className={className} disabled>
+                <EyeIcon />
+                Visualizar Laudo
+            </Button>
+        );
+    }
+
+    return (
+        <Button
+            size="sm"
+            variant="outline"
+            className={className}
+            render={<Link href={route('resptec.aprovar-laudo.visualizar', ordem.laudo_id)} />}
+        >
+            <EyeIcon />
+            Visualizar Laudo
+        </Button>
+    );
+}
+
 // Download do PDF gravado para o laudo (link comum, não navegação Inertia);
 // desabilitado quando o laudo ainda não tem arquivo
 function BotaoBaixar({ ordem, className = '' }) {
@@ -104,118 +109,6 @@ function BotaoBaixar({ ordem, className = '' }) {
             <DownloadIcon />
             Baixar Arquivo
         </Button>
-    );
-}
-
-// Botão "Aprovar" com confirmação antes de gravar
-function BotaoAprovar({ ordem, aprovandoId, onAprovar, className = '' }) {
-    const aprovando = aprovandoId === ordem.laudo_id;
-
-    if (!ordem.laudo_id) {
-        return (
-            <Button size="sm" className={className} disabled>
-                <CheckIcon />
-                Aprovar
-            </Button>
-        );
-    }
-
-    return (
-        <AlertDialog>
-            <AlertDialogTrigger
-                render={<Button size="sm" className={className} disabled={aprovandoId !== null} />}
-            >
-                <CheckIcon />
-                {aprovando ? 'Aprovando...' : 'Aprovar'}
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Aprovar o laudo {ordem.numero_laudo}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        O laudo da Ordem de Serviço #{ordem.ordem_servico_id} será marcado como aprovado pelo
-                        RespTec e sairá desta lista.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onAprovar(ordem)}>Aprovar</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
-}
-
-// Botão "Rejeitar": abre uma caixa que exige o motivo antes de gravar
-function BotaoRejeitar({ ordem, desabilitado = false, className = '' }) {
-    const [aberto, setAberto] = useState(false);
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({ motivo: '' });
-
-    if (!ordem.laudo_id) {
-        return (
-            <Button size="sm" variant="destructive" className={className} disabled>
-                <XIcon />
-                Rejeitar
-            </Button>
-        );
-    }
-
-    function alterarAberto(valor) {
-        setAberto(valor);
-        if (!valor) {
-            reset();
-            clearErrors();
-        }
-    }
-
-    function submit(e) {
-        e.preventDefault();
-        post(route('resptec.aprovar-laudo.rejeitar', ordem.laudo_id), {
-            preserveScroll: true,
-            onSuccess: () => alterarAberto(false),
-        });
-    }
-
-    return (
-        <Dialog open={aberto} onOpenChange={alterarAberto}>
-            <DialogTrigger
-                render={
-                    <Button size="sm" variant="destructive" className={className} disabled={desabilitado || processing} />
-                }
-            >
-                <XIcon />
-                {processing ? 'Rejeitando...' : 'Rejeitar'}
-            </DialogTrigger>
-            <DialogContent>
-                <form onSubmit={submit}>
-                    <DialogHeader>
-                        <DialogTitle>Rejeitar o laudo {ordem.numero_laudo}?</DialogTitle>
-                        <DialogDescription>
-                            O laudo da Ordem de Serviço #{ordem.ordem_servico_id} será marcado como rejeitado pelo
-                            RespTec e sairá desta lista. Informe o motivo da rejeição.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Field className="mt-4" data-invalid={!!errors.motivo}>
-                        <FieldLabel htmlFor={`motivo-${ordem.laudo_id}`}>Motivo da Rejeição</FieldLabel>
-                        <Input
-                            id={`motivo-${ordem.laudo_id}`}
-                            value={data.motivo}
-                            maxLength={255}
-                            required
-                            aria-invalid={!!errors.motivo}
-                            onChange={(e) => setData('motivo', e.target.value)}
-                            placeholder="Descreva o motivo da rejeição"
-                        />
-                        {errors.motivo && <FieldError>{errors.motivo}</FieldError>}
-                    </Field>
-                    <DialogFooter className="mt-4">
-                        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-                        <Button type="submit" variant="destructive" disabled={processing}>
-                            Confirmar Rejeição
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
     );
 }
 
@@ -408,6 +301,7 @@ export default function AprovarLaudo({ unidadesOperacionais, filtros, ordens }) 
                                                 <TableCell>{ordem.data_envio ?? '—'}</TableCell>
                                                 <TableCell className="text-center">
                                                     <div className="flex flex-col gap-1.5">
+                                                        <BotaoVisualizar ordem={ordem} className="w-full" />
                                                         <BotaoBaixar ordem={ordem} className="w-full" />
                                                         <BotaoAprovar ordem={ordem} aprovandoId={aprovandoId} onAprovar={aprovar} className="w-full" />
                                                         <BotaoRejeitar ordem={ordem} desabilitado={aprovandoId !== null} className="w-full" />
@@ -464,7 +358,9 @@ export default function AprovarLaudo({ unidadesOperacionais, filtros, ordens }) 
 
                                                     <div className="grid grid-cols-2 gap-2">
 
-                                                        <BotaoBaixar ordem={ordem} className="col-span-2 w-full" />
+                                                        <BotaoVisualizar ordem={ordem} className="w-full" />
+
+                                                        <BotaoBaixar ordem={ordem} className="w-full" />
 
                                                         <BotaoAprovar ordem={ordem} aprovandoId={aprovandoId} onAprovar={aprovar} className="w-full" />
 
