@@ -194,15 +194,25 @@
             line-height: 13px;
         }
 
-        /* Conteúdo rico do resultado (editor TipTap) */
+        /* Conteúdo rico do resultado (editor TipTap). Nada pode passar da
+           largura útil da página A4: palavras e URLs longas sem espaço
+           quebram em qualquer ponto, imagens encolhem e tabelas têm
+           colunas de largura fixa dividindo a largura disponível */
+        .resultado {
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
         .resultado p { margin: 0 0 3pt 0; }
         .resultado h2 { font-size: 11pt; margin: 3pt 0; }
         .resultado h3, .resultado h4 { font-size: 10pt; margin: 3pt 0; }
         .resultado ul, .resultado ol { margin: 0 0 3pt 0; padding-left: 14pt; }
         .resultado blockquote { margin: 0 0 3pt 0; padding-left: 6pt; border-left: 1.5pt solid #999; color: #444; }
-        .resultado img { max-width: 100%; margin: 3pt 0; }
+        .resultado img { max-width: 100%; height: auto; margin: 3pt 0; }
         .resultado table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             margin: 3pt 0;
             font-size: 9pt;
@@ -212,6 +222,8 @@
             border: 0.5pt solid #555;
             padding: 1.5pt 3pt;
             vertical-align: top;
+            overflow-wrap: anywhere;
+            word-wrap: break-word;
         }
         .resultado table th {
             background: #f2f2f2;
