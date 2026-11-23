@@ -101,7 +101,8 @@ Route::prefix('amostras')->middleware('auth')->group(function(){
 });
 
 // Clientes externos (pessoas físicas e jurídicas)
-Route::prefix('clientes_externos')->middleware('auth')->group(function(){
+// Clientes externos (cadastro do CRA): só usuários USUARIO_CRA (Gate acessar-cra)
+Route::prefix('clientes_externos')->middleware(['auth', 'can:acessar-cra'])->group(function(){
     Route::get('/', [ClienteExternoController::class, 'index'])->name('clientes_externos.index');
     Route::get('/create', [ClienteExternoController::class, 'create'])->name('clientes_externos.create');
     Route::get('/buscar', [ClienteExternoController::class, 'buscar'])->name('clientes_externos.buscar');
@@ -139,8 +140,8 @@ Route::post(
 )->name('solicitacao-servico.amostras.store');
 */
 
-// Arquivo CRA
-Route::prefix('arquivos_cra')->group(function(){
+// Arquivo CRA: só usuários USUARIO_CRA (Gate acessar-cra)
+Route::prefix('arquivos_cra')->middleware(['auth', 'can:acessar-cra'])->group(function(){
     Route::get('/', [ArquivoCRAController::class, 'index'])->name('arquivos_cra.index');
 //    Route::get('/create', [ArquivoCRAController::class, 'create'])->name('arquivos_cra.create');
     Route::get('/{arquivo_cra}', [ArquivoCRAController::class, 'show'])->name('arquivos_cra.show');
